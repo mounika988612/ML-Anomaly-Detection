@@ -7,7 +7,8 @@ import torch
 
 from .baselines import IForest, PCARecon, SupervisedRF
 from .data import load_feature_space, load_split
-from .models import MLPAutoencoder, MultiModalSSL, batched_components, batched_embed, train_model
+from .models import (MLPAutoencoder, MultiModalSSL, batched_components, batched_embed,
+                     batched_embed_modalities, train_model)
 from .scoring import Calibrator, LatentKNN
 from .utils import get_logger, set_seed
 
@@ -96,6 +97,43 @@ def train_neural(cfg, name, spec, fs, tr, va, tests):
             ktest = {dn: kscore(t["X"], t["role"]) for dn, t in tests.items()}
             _save_scores(cfg, vname, kval, _threshold(kval, scfg["target_fpr"]), ktest, (time.time() - t0) / len(kval) * 1e6)
             log.info("[%s] latent kNN scoring done in %.0fs", vname, time.time() - t0)
+
+        if spec["kind"] == "ssl" and len(spec["mods"]) > 1:
+            _train_latefuse_knn(cfg, name, model, spec, idx, tr, va, tests)
+
+
+def _train_latefuse_knn(cfg, name, model, spec, idx, tr, va, tests):
+    """Late-fusion latent-kNN: one role-aware LatentKNN per modality (same encoder), combined by
+    taking the most anomalous modality's calibrated z-score. Motivation: ablations show a flow's
+    anomaly is often visible strongly in a single modality (RQ2); the jointly fused embedding used
+    by `{name}_knn` can dilute that signal when the other modalities look normal, so fusing scores
+    after per-modality calibration keeps a strong single-modality signal instead of averaging it away.
+    """
+    scfg = cfg["scoring"]
+    vname = f"{name}_latefuse_knn"
+    t0 = time.time()
+    mod_tr = batched_embed_modalities(model, tr["X"][:, idx], tr["role"])
+    mod_va = batched_embed_modalities(model, va["X"][:, idx], va["role"])
+    knns, calibs = {}, {}
+    for m, e_tr in mod_tr.items():
+        knn = LatentKNN(scfg.get("knn_k", 5), scfg.get("knn_ref", 10000), scfg.get("knn_ref_role", 5000),
+                        spec["role_aware"], scfg["min_role_samples"], cfg["data"]["seed"]).fit(e_tr, tr["role"])
+        d_va = knn.distances(mod_va[m], va["role"])
+        zero = np.zeros(len(d_va), np.float32)
+        calibs[m] = Calibrator(0.0, False, scfg["min_role_samples"], scfg.get("min_scale_ratio", 0.5)).fit(
+            {"rec": d_va, "xmod": zero}, va["role"])
+        knns[m] = knn
+
+    def lf_score(X, role):
+        mod_e = batched_embed_modalities(model, X[:, idx], role)
+        zs = [calibs[m].transform({"rec": knns[m].distances(e, role), "xmod": np.zeros(len(e), np.float32)}, role)
+              for m, e in mod_e.items()]
+        return np.max(np.stack(zs, 0), 0)
+
+    kval = lf_score(va["X"], va["role"])
+    ktest = {dn: lf_score(t["X"], t["role"]) for dn, t in tests.items()}
+    _save_scores(cfg, vname, kval, _threshold(kval, scfg["target_fpr"]), ktest, (time.time() - t0) / len(kval) * 1e6)
+    log.info("[%s] late-fusion latent kNN scoring done in %.0fs", vname, time.time() - t0)
 
 
 def train_baseline(cfg, name, spec, tr, va, sup, tests):

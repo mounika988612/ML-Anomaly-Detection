@@ -86,6 +86,12 @@ class MultiModalSSL(nn.Module):
         return self.fuse(torch.cat(zs + [r], 1))
 
     @torch.no_grad()
+    def embed_modalities(self, x, role):
+        """per-modality embedding, before fusion (input of the late-fusion latent-kNN detector:
+        the joint fused embedding can dilute an anomaly that is only visible in one modality)."""
+        return {m: self.enc[m](x[:, a:b]) for m, (a, b) in self.slices.items()}
+
+    @torch.no_grad()
     def components(self, x, role):
         recon, ps = self._forward(x, role)
         err = (recon - x) ** 2
@@ -160,6 +166,17 @@ def batched_embed(model, X, role, bs=16384):
     model.eval()
     return np.concatenate([model.embed(torch.from_numpy(X[i:i + bs]), torch.from_numpy(role[i:i + bs])).numpy()
                            for i in range(0, len(X), bs)])
+
+
+def batched_embed_modalities(model, X, role, bs=16384):
+    model.eval()
+    mods = list(model.slices)
+    out = {m: [] for m in mods}
+    for i in range(0, len(X), bs):
+        d = model.embed_modalities(torch.from_numpy(X[i:i + bs]), torch.from_numpy(role[i:i + bs]))
+        for m in mods:
+            out[m].append(d[m].numpy())
+    return {m: np.concatenate(v) for m, v in out.items()}
 
 
 def batched_components(model, X, role, bs=16384, keep_feat=False):
