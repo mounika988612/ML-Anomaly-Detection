@@ -1,0 +1,9 @@
+numpy
+pandas
+pyarrow
+scikit-learn
+torch
+matplotlib
+lime
+pyyaml
+shap   # optional: pipeline falls back to a built-in permutation-Shapley estimator if it cannot be imported
