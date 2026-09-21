@@ -1,6 +1,6 @@
 #!/bin/bash
 # retrain only the neural models (baselines are unchanged) and add their latent-kNN variants
-cd "/d/Thesis source code/anomaly_pipeline"
+cd "$(dirname "$0")"
 for cfg in config_suricata2017 config_unsw config config_multiday; do
   work=$(python -c "from ids_pipeline.utils import load_config; print(load_config('$cfg.yaml')['paths']['work_dir'])")
   names=$(ls "$work"/models/*.pkl | xargs -n1 basename | sed 's/.pkl//' | tr '\n' ' ')

@@ -1,8 +1,8 @@
 # Explainable self-supervised anomaly detection on CSE-CIC-IDS2018
 paths:
-  raw_dir: "D:/Thesis source code/dataset/CICIDS2018"
-  work_dir: "D:/Thesis source code/anomaly_pipeline/work_multiday"
-  results_dir: "D:/Thesis source code/anomaly_pipeline/results_multiday"
+  raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2018}"
+  work_dir: "${IDS_WORK_DIR:-work_multiday}"
+  results_dir: "${IDS_RESULTS_DIR:-results_multiday}"
 
 data:
   seed: 42
@@ -51,6 +51,6 @@ explain:
   background_size: 100
 
 report:                       # signature context for the analyst report (Suricata + Zeek run on this victim pcap)
-  capture_dir: "D:/Thesis source code/external/pcap/thu22"
+  capture_dir: "${IDS_CAPTURE_DIR:-../external/pcap/thu22}"
   day: Thursday-22-02-2018
   attacker: 18.218.115.60

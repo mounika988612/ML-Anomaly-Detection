@@ -5,8 +5,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import (average_precision_score, matthews_corrcoef, precision_recall_curve,
-                             roc_auc_score, roc_curve)
+from sklearn.metrics import average_precision_score, matthews_corrcoef, precision_recall_curve, roc_auc_score, roc_curve
 
 from .data import load_split
 from .utils import get_logger

@@ -22,7 +22,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from .features import ROLE_NAMES, _raw_frame, assign_roles
+from .features import _raw_frame, assign_roles
 from .utils import get_logger
 
 log = get_logger()
@@ -222,6 +222,7 @@ class PcapContext:
 
     def __init__(self, capture_dir, day, attacker):
         from pathlib import Path
+
         from .signature_compare import read_zeek
         d = Path(capture_dir)
         self.day, self.attacker = day, attacker
@@ -392,7 +393,7 @@ def build_report(cfg, method, fs, alerts, items, thr, provider, res, suffix):
           f"{k_robust} of two independent explanation runs; unstable evidence should be treated with caution. "
           "Hypotheses are patterns, not diagnoses.\n",
           f"Signature source: {provider.name if provider else 'none available for this dataset'}\n"]
-    rows, table = [], []
+    table = []
     for n, (a, it) in enumerate(zip(alerts.itertuples(), items), 1):
         ctx = provider.lookup(a.day, int(a.i), it["dst_port"], it["ts"]) if provider else dict(signatures=[], notices=[], http=[], dns=[], sni=None)
         ev = _evidence(names, it["raw"], it["phi"], it["phi2"], it["base"], k_show, k_robust)

@@ -19,3 +19,8 @@ env/
 .env.*
 !.env.example
 .vscode/
+models/
+*.egg-info/
+build/
+dist/
+.ruff_cache/

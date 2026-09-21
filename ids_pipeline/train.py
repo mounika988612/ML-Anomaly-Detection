@@ -7,8 +7,7 @@ import torch
 
 from .baselines import IForest, PCARecon, SupervisedRF
 from .data import load_feature_space, load_split
-from .models import (MLPAutoencoder, MultiModalSSL, batched_components, batched_embed,
-                     batched_embed_modalities, train_model)
+from .models import MLPAutoencoder, MultiModalSSL, batched_components, batched_embed, batched_embed_modalities, train_model
 from .scoring import Calibrator, LatentKNN
 from .utils import get_logger, set_seed
 

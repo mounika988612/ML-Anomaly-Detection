@@ -146,7 +146,7 @@ def train_model(model, Xtr, rtr, Xva, rva, mcfg, log, tag=""):
             tot, n = tot + loss.item(), n + 1
         model.eval()
         with torch.no_grad():
-            g = torch.manual_seed(0)  # deterministic masks -> comparable validation loss
+            torch.manual_seed(0)  # deterministic masks -> comparable validation loss
             vl = np.mean([model.loss(Xva[i:i + 8192], rva[i:i + 8192])[0].item()
                           for i in range(0, len(Xva), 8192)])
         hist.append((tot / n, vl))

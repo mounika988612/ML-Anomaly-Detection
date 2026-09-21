@@ -8,8 +8,10 @@
     python run.py all
 """
 import argparse
+import sys
 
-from ids_pipeline.utils import load_config, set_seed
+from ids_pipeline.schema import DataError
+from ids_pipeline.utils import ConfigError, load_config, set_seed
 
 
 def main():
@@ -39,6 +41,7 @@ def main():
             run_evaluate(cfg)
         elif s == "compare":
             from pathlib import Path
+
             from ids_pipeline.signature_compare import run_compare
             run_compare(cfg, Path(args.capture_dir), args.day, args.attacker)
         elif s == "explain":
@@ -47,4 +50,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (ConfigError, DataError) as e:
+        sys.exit(f"error: {e}")

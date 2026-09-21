@@ -1,12 +1,12 @@
 # Explainable self-supervised anomaly detection on CSE-CIC-IDS2018
 paths:
-  raw_dir: "D:/Thesis source code/dataset/CICIDS2018"
-  work_dir: "D:/Thesis source code/anomaly_pipeline/work_suricata2017"
-  results_dir: "D:/Thesis source code/anomaly_pipeline/results_suricata2017"
+  raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2018}"
+  work_dir: "${IDS_WORK_DIR:-work_suricata2017}"
+  results_dir: "${IDS_RESULTS_DIR:-results_suricata2017}"
 
 data:
   dataset: suricata2017
-  suricata_parquet: "D:/Thesis source code/external/suricata2017/suricata2017_all.parquet"
+  suricata_parquet: "${IDS_SURICATA_PARQUET:-../external/suricata2017/suricata2017_all.parquet}"
   seed: 42
   # chronological protocol: fit on benign traffic of the earliest days, test on later days
   train_days: [Monday, Tuesday]

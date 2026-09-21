@@ -1,10 +1,12 @@
 """Loading, cleaning and chronological splitting of CSE-CIC-IDS2018."""
 import pickle
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from .features import FeatureSpace, GenericSpace, ROLE_NAMES
+from .features import ROLE_NAMES, FeatureSpace, GenericSpace
+from .schema import DataError, require_columns, training_columns
 from .utils import get_logger, set_seed
 
 log = get_logger()
@@ -18,7 +20,14 @@ def _unwrap_12h(t):
 
 
 def clean_day(csv_path):
-    df = pd.read_csv(csv_path, low_memory=False)
+    csv_path = Path(csv_path)
+    if not csv_path.is_file():
+        raise DataError(f"dataset file not found: {csv_path} (set IDS_DATA_DIR or paths.raw_dir)")
+    try:
+        df = pd.read_csv(csv_path, low_memory=False)
+    except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeDecodeError) as e:
+        raise DataError(f"{csv_path.name}: unreadable CSV: {e}") from e
+    require_columns(df, training_columns(), csv_path.name)
     n_raw = len(df)
     df = df[df["Label"] != "Label"]                       # header rows repeated inside some files
     n_hdr = n_raw - len(df)
@@ -33,6 +42,8 @@ def clean_day(csv_path):
     df[num] = df[num].astype("float32")
     df["Label"] = df["Label"].str.strip()
     df["attack"] = (df["Label"] != "Benign").astype("int8")
+    if df.empty:
+        raise DataError(f"{csv_path.name}: no valid rows left after cleaning")
     stats = dict(rows_raw=n_raw, header_rows=n_hdr, rows_clean=len(df),
                  benign=int((df.attack == 0).sum()), attack=int(df.attack.sum()))
     return df.sort_values("ts").reset_index(drop=True), stats

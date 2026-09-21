@@ -1,14 +1,24 @@
 # Explainable self-supervised anomaly detection (CSE-CIC-IDS2018)
 
-Thesis pipeline: DTU Compute x Terma A/S. Maps to the proposal's objectives 3-9.
+## Production use (scoring service)
+The research pipeline is complemented by a deployable layer: model **bundle** export, input validation, HTTP API and batch CLI, tests, CI, Docker.
+```
+ids-detect export --config config_multiday.yaml --out models/prod       # trained run -> pickle-free, checksummed bundle
+IDS_API_KEYS=... ids-detect serve --bundle models/prod --host 0.0.0.0    # POST /v1/score, GET /v1/model, /healthz /readyz /metrics
+ids-detect score --input flows.csv --bundle models/prod --output scored.csv
+ids-detect recalibrate --benign site_benign.csv --bundle models/prod --out models/site   # threshold drift fix, no retraining
+pip install -r requirements-dev.txt && pytest                            # 67 tests
+```
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (operations, drift, known limits) and [docs/API.md](docs/API.md) (contract). Not yet validated on customer data.
 
+## Research pipeline
 ```
 python run.py prepare    # clean CSVs -> chronological split -> feature space   (~1 min after first run)
 python run.py train      # 8 neural models + 3 baselines -> results/scores/*.npz (~6 min, CPU)
 python run.py evaluate   # metrics, per-attack recall, FPR trade-off, time-to-detect, plots
 python run.py explain    # native / SHAP / LIME attribution + analyst text (results/explanations.md)
 ```
-Settings are in `config.yaml`. Data: `D:/Thesis source code/dataset/CICIDS2018`. Outputs: `work/` (cache, models), `results/`.
+Settings are in `config.yaml`. Paths are relative to the config file and overridable with `IDS_DATA_DIR` (default `../dataset/CICIDS2018`), `IDS_WORK_DIR`, `IDS_RESULTS_DIR`. Outputs: `work/` (cache, models), `results/`.
 
 ## Protocol
 - Train on **benign only** from Wed-14 and Thu-15 (self-supervised, no attack labels). Latest 15% of that benign traffic = validation, used for the alert threshold (99th percentile = 1% target FPR).
@@ -169,5 +179,5 @@ is a separability limit of the flow features for Infiltration/Bot (attacks look 
 
 ## Running in WSL2 (if torch is blocked on Windows)
 Windows Smart App Control can block the unsigned DLLs in pip `torch`/`numba`. Run inside WSL2 instead: create a venv, `pip install --index-url https://download.pytorch.org/whl/cpu torch`
-and `pip install -r requirements.txt`, then use the `config*_wsl.yaml` files (same settings, `/mnt/d/...` paths), e.g.
-`python run.py train --config config_multiday_wsl.yaml --only ssl_mm_role` (put the stage before `--only`), then `python run.py evaluate --config config_multiday_wsl.yaml`.
+and `pip install -r requirements.txt`, then use the normal configs (paths are portable now; the old `config*_wsl.yaml` files were removed), e.g.
+`python run.py train --config config_multiday.yaml --only ssl_mm_role` (put the stage before `--only`), then `python run.py evaluate --config config_multiday.yaml`.

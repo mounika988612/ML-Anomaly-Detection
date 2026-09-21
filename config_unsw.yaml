@@ -1,12 +1,12 @@
 # Explainable self-supervised anomaly detection on CSE-CIC-IDS2018
 paths:
-  raw_dir: "D:/Thesis source code/dataset/CICIDS2018"
-  work_dir: "D:/Thesis source code/anomaly_pipeline/work_unsw"
-  results_dir: "D:/Thesis source code/anomaly_pipeline/results_unsw"
+  raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2018}"
+  work_dir: "${IDS_WORK_DIR:-work_unsw}"
+  results_dir: "${IDS_RESULTS_DIR:-results_unsw}"
 
 data:
   dataset: unsw_nb15
-  unsw_dir: "D:/Thesis source code/external/unsw"
+  unsw_dir: "${IDS_UNSW_DIR:-../external/unsw}"
   seed: 42
   # chronological protocol: fit on benign traffic of the earliest days, test on later days
   train_days: [train]

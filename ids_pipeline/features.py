@@ -66,7 +66,12 @@ def _signed_log1p(x):
     return np.sign(x) * np.log1p(np.abs(x))
 
 
-def _raw_frame(df):
+_PROTO_COLS = ("proto_tcp", "proto_udp", "proto_other")
+
+
+def _raw_frame(df, needed=None):
+    """model input columns from a CICFlowMeter frame; `needed` restricts it to the columns a fitted
+    feature space actually uses (so serving does not demand columns that were constant in training)."""
     d = pd.DataFrame(index=df.index)
     proto = df["Protocol"]
     d["proto_tcp"] = (proto == 6).astype("float32")
@@ -74,9 +79,17 @@ def _raw_frame(df):
     d["proto_other"] = (~proto.isin([6, 17])).astype("float32")
     for cols in MODALITIES.values():
         for c in cols:
-            if c not in d:
+            if c not in d and (needed is None or c in needed):
                 d[c] = df[c].astype("float32")
     return d
+
+
+def raw_columns(names):
+    """CICFlowMeter columns required to build the given feature names (+ destination port for the role)."""
+    cols = {"Dst Port"}
+    for n in names:
+        cols.add("Protocol" if n in _PROTO_COLS else n)
+    return sorted(cols)
 
 
 class FeatureSpace:
@@ -107,9 +120,26 @@ class FeatureSpace:
         return self
 
     def transform(self, df):
-        x = _signed_log1p(_raw_frame(df)[self.names].to_numpy(np.float32))
+        x = _signed_log1p(_raw_frame(df, set(self.names))[self.names].to_numpy(np.float32))
         x = np.clip((x - self.mean) / self.std, -self.clip, self.clip).astype(np.float32)
         return x, assign_roles(df["Dst Port"].to_numpy())
+
+    def required_columns(self):
+        return raw_columns(self.names)
+
+    def get_state(self):
+        """plain-data state (JSON-serialisable) so a deployed model needs no pickle."""
+        return dict(clip=float(self.clip), names=list(self.names), slices={m: list(v) for m, v in self.slices.items()},
+                    mean=[float(v) for v in self.mean], std=[float(v) for v in self.std])
+
+    @classmethod
+    def from_state(cls, st):
+        fs = cls(st["clip"])
+        fs.names = list(st["names"])
+        fs.slices = {m: tuple(v) for m, v in st["slices"].items()}
+        fs.mean, fs.std = np.array(st["mean"], np.float32), np.array(st["std"], np.float32)
+        fs.modality_of = [m for m, (a, b) in fs.slices.items() for _ in range(b - a)]
+        return fs
 
     def subset(self, modalities):
         """column indices and re-based slices for a subset of modalities (ablations)."""
