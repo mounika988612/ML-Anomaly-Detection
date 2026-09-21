@@ -5,15 +5,19 @@
     IDS_ALLOW_ANONYMOUS   "1" disables authentication (development only; the service refuses to start without keys otherwise)
     IDS_MAX_BATCH         maximum flows per request (default 5000)
     IDS_MAX_BODY_MB       maximum request body (default 20)
+    IDS_RATE_LIMIT_PER_MIN  requests per minute per API key (default 600; 0 disables), answered with 429 + Retry-After
     IDS_COLUMN_MAP        optional JSON file {their_column: canonical_column} for other flow exporters
     IDS_LOG_FORMAT        "json" for one JSON object per log line (default: text)
 """
+import hashlib
 import hmac
 import json
 import logging
 import os
+import threading
 import time
 import uuid
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from typing import Optional, Union
 
@@ -21,6 +25,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
 from .bundle import BundleError
@@ -106,13 +111,36 @@ def _keys_from_env():
     return [k.strip() for k in os.environ.get("IDS_API_KEYS", "").split(",") if k.strip()]
 
 
-def create_app(bundle_dir=None, api_keys=None, max_batch=None, allow_anonymous=None):
+class RateLimiter:
+    """sliding-window limit of requests per identity (hashed API key, or client address in anonymous mode)."""
+
+    def __init__(self, per_minute, window=60.0):
+        self.limit, self.window = per_minute, window
+        self._hits, self._lock = defaultdict(deque), threading.Lock()
+
+    def check(self, who):
+        """returns 0 if allowed, else seconds until the next request would be allowed."""
+        if self.limit <= 0:
+            return 0
+        now = time.monotonic()
+        with self._lock:
+            q = self._hits[who]
+            while q and now - q[0] >= self.window:
+                q.popleft()
+            if len(q) >= self.limit:
+                return max(1, int(self.window - (now - q[0])) + 1)
+            q.append(now)
+            return 0
+
+
+def create_app(bundle_dir=None, api_keys=None, max_batch=None, allow_anonymous=None, rate_limit=None):
     bundle_dir = bundle_dir or os.environ.get("IDS_BUNDLE_DIR")
     keys = _keys_from_env() if api_keys is None else list(api_keys)
     if allow_anonymous is None:
         allow_anonymous = os.environ.get("IDS_ALLOW_ANONYMOUS") == "1"
     max_batch = int(max_batch or os.environ.get("IDS_MAX_BATCH", 5000))
     max_body = int(float(os.environ.get("IDS_MAX_BODY_MB", 20)) * 1024 * 1024)
+    limiter = RateLimiter(int(os.environ.get("IDS_RATE_LIMIT_PER_MIN", 600) if rate_limit is None else rate_limit))
     if not keys and not allow_anonymous:
         raise RuntimeError("no API keys configured: set IDS_API_KEYS (or IDS_ALLOW_ANONYMOUS=1 for development)")
     if not bundle_dir:
@@ -132,11 +160,16 @@ def create_app(bundle_dir=None, api_keys=None, max_batch=None, allow_anonymous=N
                   description="Scores network flow records (CICFlowMeter columns) with a self-supervised, role-aware anomaly detector.")
     header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-    def auth(key: Optional[str] = Security(header)):
+    def auth(request: Request, key: Optional[str] = Security(header)):
         if allow_anonymous and not keys:
-            return
-        if not key or not any(hmac.compare_digest(key.encode(), k.encode()) for k in keys):
+            who = "anon:" + (request.client.host if request.client else "?")
+        elif key and any(hmac.compare_digest(key.encode(), k.encode()) for k in keys):
+            who = "key:" + hashlib.sha256(key.encode()).hexdigest()[:12]
+        else:
             raise HTTPException(401, "missing or invalid API key")
+        wait = limiter.check(who)
+        if wait:
+            raise HTTPException(429, f"rate limit of {limiter.limit} requests/minute exceeded", headers={"Retry-After": str(wait)})
 
     def detector() -> Detector:
         d = state.get("detector")
@@ -157,6 +190,12 @@ def create_app(bundle_dir=None, api_keys=None, max_batch=None, allow_anonymous=N
         log.info("request", extra=dict(request_id=rid, method=request.method, path=request.url.path, status=resp.status_code,
                                        ms=round((time.perf_counter() - t0) * 1000, 1)))
         return resp
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error(_, e):
+        names = {401: "unauthorized", 404: "not_found", 405: "method_not_allowed", 429: "rate_limited", 503: "unavailable"}
+        code = names.get(e.status_code, "http_error")
+        return JSONResponse(ErrorBody(error=code, detail=str(e.detail)).model_dump(), e.status_code, headers=getattr(e, "headers", None))
 
     @app.exception_handler(DataError)
     async def _data_error(_, e):

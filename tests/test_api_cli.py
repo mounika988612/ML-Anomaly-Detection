@@ -168,3 +168,19 @@ def test_json_log_formatter():
     rec.status = 200
     out = json.loads(JsonFormatter().format(rec))
     assert out["msg"] == "request" and out["status"] == 200 and out["level"] == "INFO"
+
+
+def test_rate_limit_per_key(bundle_dir):
+    with TestClient(create_app(bundle_dir, api_keys=["a", "b"], rate_limit=3)) as c:
+        codes = [c.get("/v1/model", headers={"X-API-Key": "a"}).status_code for _ in range(5)]
+        assert codes == [200, 200, 200, 429, 429]
+        r = c.get("/v1/model", headers={"X-API-Key": "a"})
+        assert r.json()["error"] == "rate_limited" and int(r.headers["Retry-After"]) >= 1
+        assert c.get("/v1/model", headers={"X-API-Key": "b"}).status_code == 200       # other key unaffected
+        assert c.get("/healthz").status_code == 200                                     # probes are never limited
+        assert c.get("/v1/model", headers={"X-API-Key": "wrong"}).json()["error"] == "unauthorized"
+
+
+def test_rate_limit_can_be_disabled(bundle_dir):
+    with TestClient(create_app(bundle_dir, api_keys=["a"], rate_limit=0)) as c:
+        assert all(c.get("/v1/model", headers={"X-API-Key": "a"}).status_code == 200 for _ in range(20))
