@@ -75,6 +75,7 @@ ROC-AUC (0.9009), 1 of 1,039,684 alert decisions differs (float noise on near-du
   1% FPR threshold on drifting real traffic is low (1-4% on CIC-2018). Treat it as a triage/prioritisation signal next to signature IDS,
   not a standalone blocker. It is untested on Terma's traffic and has not been evaluated with analysts.
 * Explanations in the API are per-feature reconstruction error; the SHAP/LIME analyst reports remain research tooling (`run.py explain`).
-* No training-as-a-service, model registry, or automatic retraining (recalibration is manual). The Docker image and compose file are untested:
-  the Docker daemon was not running where this was developed, so only CI (or your first `docker build`) verifies them.
+* No training-as-a-service, model registry, or automatic retraining (recalibration is manual). The Docker image and compose file were built and
+  run locally with the real 3-day bundle (healthy, `/readyz` and `/v1/score` answered under the read-only, non-root, no-capabilities settings)
+  and are built in CI; they have not been load-tested or run under an orchestrator.
 * No rate limiting or per-client quotas in the service; do that at the gateway. Single API-key tier, no per-key roles.
