@@ -47,7 +47,9 @@ explain:
   n_alerts: 30
   top_k: 10
   shap_permutations: 40
-  lime_samples: 1000
+  lime_samples: 1000   # 4000 was tried: more stable (0.574->0.741) but *less* faithful (deletion drop
+                        # -0.060->-0.106) -- LIME's local-linear surrogate is systematically, not just
+                        # noisily, misaligned with this non-linear score; see results*/explanation_quality*.csv
   background_size: 100
 
 report:                       # signature context for the analyst report (Suricata + Zeek run on this victim pcap)

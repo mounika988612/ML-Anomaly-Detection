@@ -36,10 +36,12 @@ Settings are in `config.yaml`. Paths are relative to the config file and overrid
 | `rf_supervised` | supervised baseline |
 
 ## Deviations from the proposal you should know about
-- **The dataset has no DNS/TLS/HTTP logs**, only CICFlowMeter flow features. "Modalities" are therefore four views of the flow record. `features.MODALITIES` is the extension point for Zeek/Suricata sources on Terma data.
+- **Where the "multi-modal telemetry" claim is actually demonstrated.** CSE-CIC-IDS2018 and UNSW-NB15 have no DNS/TLS/HTTP logs, only CICFlowMeter flow features, so their "modalities" are four views of one flow record (`features.MODALITIES`). Genuine multi-source telemetry (DNS, HTTP, TLS, SSH, FTP, parsed from Suricata's `eve.json`) exists only for **Suricata2017** (`adapters/suricata2017.py`, `MODALITIES` there). Read the thesis's multi-modal claim as demonstrated on Suricata2017; CSE-CIC-IDS2018/UNSW-NB15 demonstrate scale and the zero-day evaluation protocol with flow-derived pseudo-modalities. `features.MODALITIES` / the adapter interface is the extension point for real Zeek/Suricata sources on Terma data.
 - **Role = service role from destination port** (web, remote_admin, ...) because this release has no IPs. On Terma data use asset role / network zone.
 - The CSVs are truncated at 1,048,576 rows (Excel limit) and contain duplicates; ~20% of Wed-14 rows are duplicates and were dropped.
 - `shap` now imports on this machine (0.52.0) and all `explain` results use `shap.KernelExplainer`. `explain.py` still falls back to a built-in permutation-Shapley estimator if `shap` cannot be imported (an earlier Windows Application Control block on numba).
+- **Explanation usefulness (RQ3) is only automatically measured so far** (deletion fidelity, cross-seed stability, cross-method agreement in `explanation_quality*.csv`), not rated by a human analyst. A short review of `analyst_report*.md` alerts with the Terma supervisor is planned before submission to close this.
+- **No validation on Terma's own traffic or environment.** All results are on public benchmark datasets; the serving layer (`api.py`, `service.py`, `bundle.py`) is production-shaped (bundle export, auth, drift monitoring, recalibration, Docker) but untested against live telemetry, a SIEM, or an asset-role inventory. See `docs/DEPLOYMENT.md` "Known limits" for the full list.
 
 ## Two evaluation protocols (both implemented)
 | | config | train (benign only) | test |
@@ -63,9 +65,10 @@ Pooled ROC-AUC / recall at ~1% FPR:
   ranks best; the proposed multi-modal SSL model does not beat it in AUC. Recall at 1% FPR stays low (1-7%).
 - Per-day recalibration restores the FPR to ~1% but does not improve ranking (AUC unchanged or lower).
 - `rf_supervised` (3-day) ranks well (AUC 0.90, PR-AUC 0.78) but its fixed 0.5 threshold flags almost nothing on unseen attacks.
-- Explanations (3-day): SHAP and native attribution beat random feature removal (deletion drop 0.22 / 0.27 vs -0.05); LIME
-  does not (-0.05). SHAP top-10 stability across seeds is only ~0.45. Only Bot / Infiltration / SQL-injection alerts fired, so
-  DDoS and brute-force alerts are not explained.
+- Explanations (3-day): SHAP and native attribution beat random feature removal (deletion drop 0.29 / 0.27 vs -0.06); LIME is
+  close to even (was -0.05 before the LIME fix below). SHAP top-10 stability across seeds is 0.50 (was 0.38). Only Bot /
+  Infiltration / SQL-injection alerts fired, so DDoS and brute-force alerts are not explained. See "Explainability fix" below
+  for the LIME/SHAP changes and the full before/after numbers on all four datasets.
 
 ## Signature IDS comparison (Suricata + Zeek on real pcap)
 `docker_ids.sh` runs Suricata (Emerging Threats Open rules) and Zeek offline on the Thu-22 victim capture (172.31.69.28);
@@ -118,6 +121,36 @@ Thu-22 web attacks) - 5 of 29 alerts are confirmed by `ET WEB_SERVER Script tag 
 Limits: on CSE-CIC-IDS2018 and UNSW-NB15 there is no signature source for most flows, so most alerts are ANOMALY ONLY; hypotheses are
 heuristics, not diagnoses, and were not evaluated with analysts (RQ3 usefulness remains to be validated, e.g. with the Terma supervisor).
 
+## Explainability fix: role-matched LIME background + capped feature count (`explain.py`)
+Two concrete causes were found for LIME's poor showing (deletion-fidelity below random removal, near-zero agreement with SHAP/native):
+1. `LimeTabularExplainer` was fit on one dataset-wide background sample. SHAP's background was already per-role (the benign validation flows of
+   the same service role as the flow being explained); LIME's was not, so its local surrogate was fit against the wrong notion of "normal" for
+   roles whose benign traffic differs from the pooled average. **Fix:** one `LimeTabularExplainer` per role, background = that role's benign
+   training flows (falls back to the pooled sample for roles with too few).
+2. `explain_instance(..., num_features=d)` forced LIME to fit a coefficient for *every* one of the ~70-90 features from ~1,000 perturbed samples
+   per call - underdetermined, so the ridge fit was noisy. **Fix:** `num_features=30`, letting LIME's own selection pick the locally relevant
+   subset (only the top 5-10 are used downstream anyway).
+`shap.KernelExplainer`'s budget was also raised (background 20->40, `nsamples` 500->1200; measured cost was ~0.05-0.17s/alert, so this is cheap)
+to reduce its own cross-seed variance. A separate check - raising `lime_samples` 1000->4000 - made LIME's estimate *more stable* (0.574->0.741 on
+the 3-day set) but *less faithful* (deletion drop -0.060->-0.106): more samples converge more confidently onto a linear surrogate that is
+systematically, not just noisily, misaligned with this non-linear latent-distance score. `lime_samples` was kept at 1000.
+
+Before -> after (`explanation_quality*.csv`, all four datasets, same trained models, only the attribution methods changed):
+| dataset | shap deletion drop | shap stability | lime deletion drop | lime stability | shap-lime agreement |
+|---|---|---|---|---|---|
+| CIC-2018 2-day | 0.169 -> 0.227 | 0.362 -> 0.517 | **-0.032 -> +0.252** | 0.484 -> 0.778 | 0.096 -> 0.276 |
+| CIC-2018 3-day | 0.161 -> 0.293 | 0.376 -> 0.499 | -0.075 -> -0.060 | 0.483 -> 0.574 | 0.062 -> 0.179 |
+| Suricata2017 | 0.819 -> 0.815 | 0.654 -> 0.762 | **-0.154 -> +0.412** | 0.646 -> 0.302 | 0.153 -> 0.349 |
+| UNSW-NB15 | 0.391 -> 0.403 | 0.401 -> 0.576 | +0.037 -> **-0.096** | 0.365 -> 0.516 | 0.192 -> 0.197 |
+
+**SHAP improved or held on all four datasets** (deletion fidelity flat-to-better, stability up everywhere, +0.10 to +0.22). **LIME improved
+sharply on three of four** (2-day and Suricata2017 flipped from worse-than-random to clearly better-than-random deletion fidelity; agreement with
+SHAP roughly doubled to tripled on 2-day/3-day/Suricata2017) **but regressed on UNSW-NB15** (+0.037 -> -0.096) - report this honestly, do not
+average it away. Reading for RQ3: SHAP and native attribution are the methods to trust for analyst-facing explanations everywhere; LIME is now
+informative on three of four telemetry sources but is not reliable enough to lead on, and should stay a secondary cross-check, not the primary
+explanation, until the UNSW regression is understood (candidate cause: UNSW's `GenericSpace` features have different scale/sparsity per modality
+than the CICFlowMeter/Suricata feature sets, worth checking before trusting LIME there).
+
 ## Latent-space scoring: the improved SSL method (`ssl_*_knn`)
 **Change.** The original SSL score was mean reconstruction error, which dilutes anomalies and does not use the learned embedding (objective 6).
 New score = mean distance of a flow's fused latent embedding to its k=5 nearest benign training embeddings (`scoring.LatentKNN`, 10k reference
@@ -129,6 +162,17 @@ Pooled calibration on benign validation data (1% target FPR). Nothing uses attac
 weight, epochs, dropout, mask ratio, size) were checked with a label-free pseudo-anomaly test (swapped modality blocks / extreme features on
 benign validation flows); it was flat across all variants, so the defaults were kept. Suricata2017 was used as a confirmation set, but its first result
 (threshold far too conservative because the role was normalised twice) led to switching to one pooled calibration, so it is **not** a clean held-out set.
+
+This was re-checked more thoroughly (`scripts/hparam_search.py`, `results_multiday/hparam_search_*.csv`): a 15-candidate label-free grid over
+`contrastive_weight` (0-0.4), `mask_ratio` (0.15-0.35), `epochs` (10/20), `latent_dim` (32/64) and `modality_dropout` (0/0.15/0.25) on the 3-day
+config, scored by ROC-AUC of real benign validation flows vs. two synthetic-anomaly sets (a shuffled modality block; extreme feature values), never
+touching attack labels. Result: again flat, all candidates within ~0.002 AUC of each other on that criterion; the mild best candidate
+(`contrastive_weight=0.05`, `mask_ratio=0.35`) was retrained end-to-end and evaluated once on the real (labelled) test set as a check, not as
+further tuning — `ssl_mm_role_knn` came back at 0.824 vs. 0.829 for the shipped defaults, i.e. no real change, and `ssl_no_contrastive_knn` still led
+at 0.841. **Conclusion: the CIC-2018 3-day gap (contrastive multi-modal role-aware SSL not beating its own no-contrastive ablation) is not a
+hyperparameter-tuning problem** under this architecture and this label-free selection criterion; it is reported as a negative result, not chased
+further with the shipped config. `modality_dropout=0.15` (the shipped default) *was* confirmed best among 0/0.15/0.25 on this criterion, so the
+motivation for forcing cross-modal learning during training is not thrown out, only the contrastive loss term's contribution to the final score.
 
 ROC-AUC / PR-AUC / recall at the benign-validation threshold (fixed threshold, ~1% target FPR):
 | dataset | `ssl_mm_role_knn` | `ae_concat_knnrole` | `ae_concat` (old score) | `iforest` | `ssl_mm_role` (old score) | supervised RF | Suricata signatures |

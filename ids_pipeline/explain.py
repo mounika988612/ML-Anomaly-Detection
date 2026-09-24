@@ -60,15 +60,21 @@ def permutation_shapley(f, x, bg, n_perm, rs):
 def shap_values(f, x, bg, e, rs):
     try:
         import shap
-        ex = shap.KernelExplainer(f, bg[rs.choice(len(bg), min(20, len(bg)), replace=False)])
-        return np.asarray(ex.shap_values(x[None], nsamples=500, silent=True)).reshape(-1), "shap.KernelExplainer"
+        # background 20->40, nsamples 500->1200: KernelSHAP variance falls with more coalition samples;
+        # cost is negligible here (~0.05s/alert measured), so this buys cross-seed stability cheaply.
+        ex = shap.KernelExplainer(f, bg[rs.choice(len(bg), min(40, len(bg)), replace=False)])
+        return np.asarray(ex.shap_values(x[None], nsamples=1200, silent=True)).reshape(-1), "shap.KernelExplainer"
     except Exception:
         return permutation_shapley(f, x, bg, e["shap_permutations"], rs), "permutation-Shapley (built-in)"
 
 
-def lime_values(f, x, lime_exp, n_samples, seed, d):
+LIME_NUM_FEATURES = 30   # let LIME's own feature selection pick a subset instead of fitting all d
+                         # coefficients on n_samples perturbations (that was underdetermined and unstable)
+
+
+def lime_values(f, x, lime_exp, n_samples, seed, d, num_features=LIME_NUM_FEATURES):
     np.random.seed(seed)
-    ex = lime_exp.explain_instance(x, f, num_features=d, num_samples=n_samples)
+    ex = lime_exp.explain_instance(x, f, num_features=min(num_features, d), num_samples=n_samples)
     w = np.zeros(d)
     for i, v in ex.as_map()[1 if 1 in ex.as_map() else list(ex.as_map())[0]]:
         w[i] = v
@@ -130,9 +136,17 @@ def run_explain(cfg):
     alerts = pd.concat(chosen).reset_index(drop=True)
     log.info("explaining %d alerts (%s)", len(alerts), alerts.label.value_counts().to_dict())
 
-    lime_bg = tr["X"][rs.choice(len(tr["X"]), 5000, replace=False)]
-    lime_exp = LimeTabularExplainer(lime_bg, feature_names=names, mode="regression",
-                                    discretize_continuous=False, random_state=0)
+    # one LIME explainer per role, background matched to that role (mirrors the per-alert SHAP background
+    # below); a single dataset-wide background was fitting the local surrogate against the wrong notion of
+    # "normal" for roles whose benign traffic looks different from the pooled average.
+    def _lime_bg(role):
+        m = tr["role"] == role
+        pool = tr["X"][m] if m.sum() >= e["background_size"] else tr["X"]
+        return pool[rs.choice(len(pool), min(5000, len(pool)), replace=False)]
+
+    lime_exps = {r: LimeTabularExplainer(_lime_bg(r), feature_names=names, mode="regression",
+                                         discretize_continuous=False, random_state=0)
+                for r in range(len(ROLE_NAMES))}
     tests = {day: load_split(cfg, f"test_{day}") for day in cfg["data"]["test_days"]}
     k, records, quality, importance = e["top_k"], [], [], {}
     loader = _adapter(cfg)[0]
@@ -158,6 +172,7 @@ def run_explain(cfg):
         native[idx] = comps["feat_err"][0]
         t0 = time.time(); phi, backend = shap_values(f, x, bg, e, np.random.RandomState(0)); t_shap = time.time() - t0
         phi2, _ = shap_values(f, x, bg, e, np.random.RandomState(1))
+        lime_exp = lime_exps[role]
         t0 = time.time(); lw = lime_values(f, x, lime_exp, e["lime_samples"], 0, d); t_lime = time.time() - t0
         lw2 = lime_values(f, x, lime_exp, e["lime_samples"], 1, d)
         attr = {"native": native, "shap": phi, "lime": lw}
