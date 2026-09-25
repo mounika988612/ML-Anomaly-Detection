@@ -21,7 +21,7 @@ import pandas as pd
 import torch
 
 from .analyst_report import Baseline, PcapContext, Suricata2017Context, build_report, raw_features, raw_roles
-from .data import _adapter, load_feature_space, load_split
+from .data import _adapter, check_aligned, load_feature_space, load_split
 from .features import ROLE_NAMES
 from .models import MLPAutoencoder, MultiModalSSL, batched_components
 from .utils import get_logger
@@ -125,6 +125,7 @@ def run_explain(cfg):
     pool = []
     for day in cfg["data"]["test_days"]:
         t = load_split(cfg, f"test_{day}")
+        check_aligned(sc, day, t, method)
         s = sc[f"test_{day}"]
         for i in np.where(s > thr)[0]:
             pool.append((day, i, t["label"][i], float(s[i])))

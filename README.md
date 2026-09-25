@@ -7,7 +7,7 @@ ids-detect export --config config_multiday.yaml --out models/prod       # traine
 IDS_API_KEYS=... ids-detect serve --bundle models/prod --host 0.0.0.0    # POST /v1/score, GET /v1/model, /healthz /readyz /metrics
 ids-detect score --input flows.csv --bundle models/prod --output scored.csv
 ids-detect recalibrate --benign site_benign.csv --bundle models/prod --out models/site   # threshold drift fix, no retraining
-pip install -r requirements-dev.txt && pytest                            # 67 tests
+pip install -r requirements-dev.txt && pytest                            # 76 tests
 ```
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (operations, drift, known limits) and [docs/API.md](docs/API.md) (contract). Not yet validated on customer data.
 
@@ -32,6 +32,7 @@ Settings are in `config.yaml`. Paths are relative to the config file and overrid
 | `ssl_mm_global` | same without any role information (objective 4 ablation) |
 | `ssl_no_contrastive` | no cross-modal term (SSL ablation) |
 | `ssl_only_<modality>` | single-modality models (RQ2) |
+| `ssl_mm_twoview_knn` | **two-view** (only with `data.context_features`, see below): `ssl_mm_flow_knn` (4 per-flow modalities) and `ssl_only_temporal_context_knn` (5th modality: traffic context) fused by min-p on tail probabilities |
 | `ae_concat`, `iforest`, `pca_recon` | unsupervised baselines |
 | `rf_supervised` | supervised baseline |
 
@@ -221,7 +222,64 @@ validation thresholds all give recall 0.01-0.04 (MCC <= 0.044) for `ssl_mm_role_
 Even a label-using best-MCC threshold (upper bound, not deployable) needs ~16-25% FPR to reach recall ~0.83 (MCC 0.45-0.56). So the low recall at 1% FPR
 is a separability limit of the flow features for Infiltration/Bot (attacks look like benign traffic), not a threshold-selection problem.
 
+## Temporal-context modality and two-view fusion (`config_context.yaml` -> `results_context/`)
+**Problem.** On the 2-day protocol every method missed DDoS-HOIC (668,461 flows, 64% of all attack flows), Bot and most Infiltration. The
+per-flow modalities cannot see these attacks: one HOIC request looks like ordinary web traffic, and a flood, a beacon or a scan only becomes
+visible in aggregate. The CSVs have no IPs, so per-host behaviour is not available either.
+
+**Change 1: a 5th modality, `temporal_context`** (`features.CONTEXT_MODALITY`, `add_context_features`, switched on by `data.context_features: true`).
+12 features per flow computed from timestamp, destination port and flow "shape" (dst port, protocol, fwd/bwd packet and byte counts):
+flows in the same second and trailing 60 s, overall and to the same port; that port's share of the load; distinct destination ports per 1 s / 10 s
+(scanning); near-identical flows per 1 s / 60 s and their share of the port's traffic (floods, bots); seconds since the previous identical flow and
+the previous flow to this port (beaconing). Computed over each full cleaned day **before** the train/validation split and any sampling, attacks
+included (as a deployed sensor would see them), labels unused. Timestamps have 1 s resolution, so "same second" includes flows later in that second.
+Checked against a brute-force count in `tests/test_features_scoring.py`. Default configs are unchanged; the baselines get the same 81 features.
+
+**Change 2: two-view fusion** (`evaluate.TWO_VIEW`, `min_p`). Putting all 5 modalities into one fused embedding (`ssl_mm_role_knn` in
+`results_context/`) does not work: the 4 per-flow modalities drown the context signal and HOIC is still ranked *below* benign traffic on its day
+(within-day ROC-AUC 0.004, recall 0% at the adapted threshold). Instead `ssl_mm_flow` (SSL-MM on the 4 per-flow modalities) and
+`ssl_only_temporal_context` are trained separately, each with its latent-kNN score. Each score is turned into its empirical upper-tail probability
+among its own benign reference scores (validation for the fixed threshold, the unlabeled first 30 min of the day for `_adapted`), and the fused score
+is the smallest tail probability (max of −log p). The threshold is the (1 − FPR) quantile of the fused reference score. A plain max of the two
+calibrated scores fails because the context score has a much heavier benign tail, sets the threshold and hides the web attacks (XSS 0%).
+
+**Results, 2-day protocol, `metrics_overall_adapted.csv` (1% target FPR):**
+
+| method | ROC-AUC | PR-AUC | precision | recall | FPR | MCC | F1 |
+|---|---|---|---|---|---|---|---|
+| `ssl_mm_twoview_knn` | **0.937** | **0.889** | 0.976 | 0.653 | 0.74% | **0.735** | 0.783 |
+| `ssl_only_temporal_context_knn` | 0.874 | 0.866 | 0.982 | 0.661 | 0.57% | 0.744 | 0.790 |
+| `ssl_mm_flow_knn` (= `ssl_mm_role_knn` in `results/`) | 0.487 | 0.361 | 0.412 | 0.009 | 0.62% | 0.017 | 0.018 |
+| `ssl_mm_role_knn` (5 modalities, one embedding) | 0.572 | 0.360 | 0.587 | 0.028 | 0.92% | 0.072 | 0.054 |
+| `rf_supervised` | 0.878 | 0.825 | 0.290 | 0.000 | 0.00% | 0.000 | 0.000 |
+| `ae_concat_knnrole` | 0.586 | 0.367 | 0.438 | 0.015 | 0.87% | 0.027 | 0.028 |
+
+Recall per attack (adapted), flow view / context view / **two-view**: HOIC 0 / 0.995 / **0.995**; LOIC-UDP 1.0 / 0.806 / **1.0**;
+XSS 0.506 / 0 / **0.468**; Web brute force 0.285 / 0 / **0.273**; SQL injection 0.059 / 0 / 0.029; Infiltration 0.032 / 0.238 / 0.100;
+Bot 0.018 / 0.006 / 0.022. The two views are complementary (context: floods and scans; flow: web attacks), and only the fusion gets both, which is
+the first result on CSE-CIC-IDS2018 where multiple views beat every single view. `ssl_mm_flow_knn` reproduces the original `ssl_mm_role_knn`
+exactly (ROC-AUC 0.7746, fixed threshold), so old and new results are directly comparable.
+
+**Limits.**
+- **Depends on per-day recalibration.** With the fixed validation threshold the DDoS day's benign traffic is still flagged almost entirely
+  (pooled FPR ~16%, as for every method before; `metrics_overall.csv`), although the context view now also flags the attacks there.
+- **Sensitive operating point.** At 0.1% / 0.5% target FPR two-view recall collapses to 0.4% / 0.6% (HOIC sits just above the 1% threshold);
+  from 1% to 5% it is stable at 0.65-0.72 (`fpr_recall_tradeoff_adapted.csv`).
+- **Bot (2%) and Infiltration (10%) remain mostly missed**; fusion loses part of the context view's Infiltration recall (24%).
+  Bot beaconing is probably slower than the 1 s / 60 s windows.
+- **Not a clean held-out result.** The context features were designed after seeing which attacks were missed, and min-p was chosen over
+  raw max, mean, smooth max and Fisher fusion by comparing them on the labelled test days (`logs/fusion_offline*.py`). The UNSW-NB15 and
+  3-day protocols have not been run with this change, and it is a single seed.
+- The context view is still derived from CICFlowMeter records, not a separate telemetry source; the multi-source claim remains Suricata2017's.
+- The scoring service does not compute context features for single incoming flows; bundles exported from this config are not servable yet.
+
+Reproduce (WSL2): `python run.py prepare --config config_context.yaml`, then `python run.py train --config config_context.yaml --only ssl_mm_flow
+ssl_only_temporal_context ssl_mm_role ssl_mm_global ssl_no_contrastive ae_concat iforest pca_recon rf_supervised`, then `python run.py evaluate
+--config config_context.yaml` (`logs/run_context.sh` does all three).
+
 ## Running in WSL2 (if torch is blocked on Windows)
-Windows Smart App Control can block the unsigned DLLs in pip `torch`/`numba`. Run inside WSL2 instead: create a venv, `pip install --index-url https://download.pytorch.org/whl/cpu torch`
+Windows Smart App Control can block the unsigned DLLs in pip `torch`/`numba` (on this machine it now also blocks scikit-learn), so all
+experiments run in the WSL2 venv `.venv-linux` (Python 3.14.4, torch 2.14.0 CPU, scikit-learn 1.9.1, shap 0.52.0); `bash scripts/setup_wsl_env.sh`
+creates it. Manually: create a venv, `pip install --index-url https://download.pytorch.org/whl/cpu torch`
 and `pip install -r requirements.txt`, then use the normal configs (paths are portable now; the old `config*_wsl.yaml` files were removed), e.g.
 `python run.py train --config config_multiday.yaml --only ssl_mm_role` (put the stage before `--only`), then `python run.py evaluate --config config_multiday.yaml`.

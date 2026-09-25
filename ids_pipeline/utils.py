@@ -89,6 +89,12 @@ def load_config(path=None):
     return cfg
 
 
+def interim_path(cfg, day):
+    """cache of one cleaned day. v2 = rows stably sorted by time (flows in the same second keep their file order),
+    so row order, and with it the alignment of saved scores and labels, is identical on every platform."""
+    return cfg["paths"]["work_dir"] / "interim" / f"{day}.v2.parquet"
+
+
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)

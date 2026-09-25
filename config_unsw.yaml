@@ -39,6 +39,7 @@ scoring:
   adapt_window_sec: 0      # unlabeled start-of-day window used for per-day recalibration
   min_role_samples: 500
   min_scale_ratio: 0.5        # per-role score scale floored at this fraction of the global scale
+  incident_gap_sec: 0         # no timestamps in UNSW-NB15: incident metrics off
 
 baselines:
   n_fit_rows: 200000

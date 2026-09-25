@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from .data import T0, load_split
+from .data import T0, check_aligned, load_split
 from .utils import get_logger
 
 log = get_logger()
@@ -69,6 +69,7 @@ def run_compare(cfg, capture_dir, day, attacker):
         if f.stem == "suricata_signature" or f"test_{day}" not in np.load(f).files:
             continue
         z = np.load(f)
+        check_aligned(z, day, t, f.stem)
         s = z[f"test_{day}"][matched]
         df[f.stem] = s > float(z["thr"])
         scores[f.stem] = float(z["thr"])

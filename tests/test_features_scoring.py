@@ -1,6 +1,6 @@
 import numpy as np
 
-from ids_pipeline.features import FeatureSpace, assign_roles, raw_columns
+from ids_pipeline.features import FeatureSpace, add_context_features, assign_roles, raw_columns
 from ids_pipeline.scoring import Calibrator, LatentKNN
 
 
@@ -50,3 +50,27 @@ def test_calibrator_centres_validation_scores():
     roles = np.zeros(5000, np.int8)
     s = Calibrator(0.0, False).fit(comps, roles).transform(comps, roles)
     assert abs(np.median(s)) < 1e-3
+
+
+def test_context_features_match_brute_force(benign):
+    rs = np.random.RandomState(0)
+    df = benign.head(600).assign(ts=np.sort(rs.randint(0, 300, 600)).astype(float) + 1e6)
+    df["Tot Fwd Pkts"] = rs.choice([1.0, 2.0], len(df))          # make repeated flow shapes likely
+    for c in ("Tot Bwd Pkts", "TotLen Fwd Pkts", "TotLen Bwd Pkts"):
+        df[c] = 1.0
+    ctx = add_context_features(df)
+    t, p = df["ts"].to_numpy(), df["Dst Port"].to_numpy()
+    shape = df[["Dst Port", "Protocol", "Tot Fwd Pkts"]].to_numpy()
+    for i in rs.choice(len(df), 40, replace=False):
+        win = (t > t[i] - 60) & (t <= t[i])
+        same = (shape == shape[i]).all(1)
+        assert ctx["ctx_flows_60s"].iat[i] == win.sum()
+        assert ctx["ctx_port_flows_1s"].iat[i] == ((t == t[i]) & (p == p[i])).sum()
+        assert ctx["ctx_shape_60s"].iat[i] == (win & same).sum()
+        prev = t[same & (t < t[i])]
+        assert ctx["ctx_shape_gap"].iat[i] == (t[i] - prev.max() if len(prev) else 3600.0)
+        assert ctx["ctx_ports_1s"].iat[i] == len(set(p[t == t[i]]))
+    fs = FeatureSpace(8.0, context=True).fit(ctx)
+    assert "temporal_context" in fs.slices and {"ctx_shape_60s", "ctx_shape_gap"} <= set(fs.names)
+    assert FeatureSpace.from_state(fs.get_state()).slices == fs.slices
+    assert "temporal_context" not in FeatureSpace(8.0).fit(ctx).slices

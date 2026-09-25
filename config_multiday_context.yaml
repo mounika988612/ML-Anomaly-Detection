@@ -1,8 +1,8 @@
-# Explainable self-supervised anomaly detection on CSE-CIC-IDS2018
+# config_multiday.yaml + temporal_context modality (held-out confirmation of the two-view model). Compare results_multiday_context/ with results_multiday/
 paths:
   raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2018}"
-  work_dir: "${IDS_WORK_DIR:-work_multiday}"
-  results_dir: "${IDS_RESULTS_DIR:-results_multiday}"
+  work_dir: "${IDS_WORK_DIR:-work_multiday_context}"
+  results_dir: "${IDS_RESULTS_DIR:-results_multiday_context}"
 
 data:
   seed: 42
@@ -14,6 +14,7 @@ data:
   max_sup_rows: 400000        # labelled sample for the supervised baseline
   max_test_rows_per_day: 1100000
   clip: 8.0                   # clip standardised features to +-clip
+  context_features: true      # adds the 5th modality temporal_context (features.CONTEXT_MODALITY)
 
 model:
   hidden: 128

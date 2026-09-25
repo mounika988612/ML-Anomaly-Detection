@@ -11,7 +11,8 @@ from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 
-from ..features import assign_roles
+from ..features import CONTEXT_MODALITY, add_context_features, assign_roles
+from ..utils import interim_path
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 _FLAGS = ("fin", "syn", "rst", "psh", "ack", "urg", "ece", "cwr")
@@ -133,8 +134,17 @@ def _parse_chunk(logs):
     return pd.DataFrame([parse_log(s) for s in logs]).astype("float32")
 
 
+def with_context(df):
+    """temporal_context modality (features.add_context_features, unchanged) from this dataset's flow fields:
+    destination port and protocol from the Flow ID, packet/byte counts per direction from the Suricata flow event."""
+    shape = df.assign(**{"Dst Port": df["dst_port"], "Protocol": df["proto_num"], "Tot Fwd Pkts": df["pkts_ts"],
+                         "Tot Bwd Pkts": df["pkts_tc"], "TotLen Fwd Pkts": df["bytes_ts"], "TotLen Bwd Pkts": df["bytes_tc"]})
+    ctx = add_context_features(shape)
+    return df.assign(**{c: ctx[c] for c in CONTEXT_MODALITY["temporal_context"]})
+
+
 def load_day(cfg, day):
-    cache = cfg["paths"]["work_dir"] / "interim" / f"{day}.parquet"
+    cache = interim_path(cfg, day)
     if cache.exists():
         return pd.read_parquet(cache)
     raw = pd.read_parquet(cfg["data"]["suricata_parquet"], columns=["Flow ID", "log", "alerted", "class", "start", "Day"])
@@ -150,9 +160,10 @@ def load_day(cfg, day):
         ts=DAYS.index(day) * 86400 + hms[0] * 3600 + hms[1] * 60 + hms[2],
         Label=raw["class"].str.strip().replace({"BENIGN": "Benign"}),
         role=assign_roles(np.minimum(sp, dp).to_numpy()),
-        sig=raw["alerted"].astype("int8"))
+        sig=raw["alerted"].astype("int8"),
+        dst_port=dp.to_numpy(np.int32), proto_num=pd.to_numeric(parts[4], errors="coerce").fillna(-1).to_numpy(np.int16))
     df["attack"] = (df.Label != "Benign").astype("int8")
-    df = df.sort_values("ts").reset_index(drop=True)
+    df = df.sort_values("ts", kind="stable").reset_index(drop=True)      # platform-independent order of ties
     cache.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(cache)
     return df

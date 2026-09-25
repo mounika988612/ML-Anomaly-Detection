@@ -14,7 +14,7 @@ from sklearn.metrics import roc_auc_score
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from ids_pipeline.data import load_split          # noqa: E402
+from ids_pipeline.data import check_aligned, load_split  # noqa: E402
 from ids_pipeline.utils import load_config        # noqa: E402
 
 KEY = ["ssl_mm_role_knn", "ssl_mm_global_knn", "ssl_no_contrastive_knn", "ae_concat_knnrole", "ae_concat_knn",
@@ -42,6 +42,8 @@ def main(cfgs):
             if not f.exists():
                 continue
             z = np.load(f)
+            for d in days:
+                check_aligned(z, d, tests[d], name)
             s = np.concatenate([z[f"test_{d}"].astype(float) for d in days])
             auc, lo, hi = boot_auc(y, s)
             r = dict(method=name, auc=auc, auc_lo=lo, auc_hi=hi)

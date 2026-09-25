@@ -22,17 +22,27 @@ def method_specs(fs):
         "ssl_no_contrastive": dict(kind="ssl", mods=mods, use_role=True, role_aware=True, lam=0.0),
         "ae_concat": dict(kind="ae", mods=mods, use_role=False, role_aware=False),
     }
+    if "temporal_context" in mods:
+        # flow view of the two-view detector (evaluate.TWO_VIEW): the per-flow modalities without the context
+        s["ssl_mm_flow"] = dict(kind="ssl", mods=[m for m in mods if m != "temporal_context"], use_role=True, role_aware=True)
     for m in mods:
         s[f"ssl_only_{m}"] = dict(kind="ssl", mods=[m], use_role=True, role_aware=True)
     s.update({"iforest": dict(kind="iforest"), "pca_recon": dict(kind="pca"), "rf_supervised": dict(kind="rf")})
     return s
 
 
-def _save_scores(cfg, name, val, thr, test, lat, hist=None):
+def _save_scores(cfg, name, val, thr, test, lat, tests, hist=None):
+    """scores plus the labels they were computed on (y_<day>; label_<day> = index into label_names),
+    so a score file can be analysed per attack on its own and evaluate can verify the row alignment."""
     out = cfg["paths"]["results_dir"] / "scores"
     out.mkdir(exist_ok=True)
-    np.savez(out / f"{name}.npz", val=val, thr=thr, lat_ms_per_1k=lat,
-             hist=np.array(hist if hist else [[0, 0]]), **{f"test_{d}": s for d, s in test.items()})
+    names = np.array(sorted({str(v) for t in tests.values() for v in np.unique(t["label"])}))
+    labels = {}
+    for d, t in tests.items():
+        labels[f"y_{d}"] = t["y"]
+        labels[f"label_{d}"] = np.searchsorted(names, t["label"]).astype(np.int16)
+    np.savez(out / f"{name}.npz", val=val, thr=thr, lat_ms_per_1k=lat, label_names=names,
+             hist=np.array(hist if hist else [[0, 0]]), **{f"test_{d}": s for d, s in test.items()}, **labels)
 
 
 def _threshold(val_scores, fpr):
@@ -64,10 +74,10 @@ def train_neural(cfg, name, spec, fs, tr, va, tests):
     lat = (time.time() - t0) / len(val) * 1e6            # ms per 1000 flows
     thr = _threshold(val, scfg["target_fpr"])
     test = {d: score(t["X"], t["role"]) for d, t in tests.items()}
-    _save_scores(cfg, name, val, thr, test, lat, hist)
+    _save_scores(cfg, name, val, thr, test, lat, tests, hist)
 
-    d = cfg["paths"]["work_dir"] / "models"
-    d.mkdir(exist_ok=True)
+    d = cfg["paths"].get("models_dir") or cfg["paths"]["work_dir"] / "models"     # models_dir: set by scripts/multiseed.py
+    d.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), d / f"{name}.pt")
     with open(d / f"{name}.pkl", "wb") as f:
         pickle.dump(dict(spec=spec, calibrator=calib, thr=thr, slices=sl, idx=idx), f)
@@ -94,7 +104,7 @@ def train_neural(cfg, name, spec, fs, tr, va, tests):
 
             kval = kscore(va["X"], va["role"])
             ktest = {dn: kscore(t["X"], t["role"]) for dn, t in tests.items()}
-            _save_scores(cfg, vname, kval, _threshold(kval, scfg["target_fpr"]), ktest, (time.time() - t0) / len(kval) * 1e6)
+            _save_scores(cfg, vname, kval, _threshold(kval, scfg["target_fpr"]), ktest, (time.time() - t0) / len(kval) * 1e6, tests)
             log.info("[%s] latent kNN scoring done in %.0fs", vname, time.time() - t0)
 
         if spec["kind"] == "ssl" and len(spec["mods"]) > 1:
@@ -131,7 +141,7 @@ def _train_latefuse_knn(cfg, name, model, spec, idx, tr, va, tests):
 
     kval = lf_score(va["X"], va["role"])
     ktest = {dn: lf_score(t["X"], t["role"]) for dn, t in tests.items()}
-    _save_scores(cfg, vname, kval, _threshold(kval, scfg["target_fpr"]), ktest, (time.time() - t0) / len(kval) * 1e6)
+    _save_scores(cfg, vname, kval, _threshold(kval, scfg["target_fpr"]), ktest, (time.time() - t0) / len(kval) * 1e6, tests)
     log.info("[%s] late-fusion latent kNN scoring done in %.0fs", vname, time.time() - t0)
 
 
@@ -148,7 +158,7 @@ def train_baseline(cfg, name, spec, tr, va, sup, tests):
     lat = (time.time() - t0) / len(val) * 1e6
     if spec["kind"] != "rf":
         thr = _threshold(val, cfg["scoring"]["target_fpr"])
-    _save_scores(cfg, name, val, thr, {d: model.score(t["X"]) for d, t in tests.items()}, lat)
+    _save_scores(cfg, name, val, thr, {d: model.score(t["X"]) for d, t in tests.items()}, lat, tests)
 
 
 def run_train(cfg, only=None):
@@ -166,4 +176,4 @@ def run_train(cfg, only=None):
     if (not only or "suricata_signature" in only) and "sig" in va:
         log.info("=== suricata_signature (decisions of Suricata's ET rules, no training) ===")
         _save_scores(cfg, "suricata_signature", va["sig"].astype(np.float32), 0.5,
-                     {d: t["sig"].astype(np.float32) for d, t in tests.items()}, 0.0)
+                     {d: t["sig"].astype(np.float32) for d, t in tests.items()}, 0.0, tests)

@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .features import ROLE_NAMES, FeatureSpace, GenericSpace
+from .features import CONTEXT_MODALITY, ROLE_NAMES, FeatureSpace, GenericSpace, add_context_features
 from .schema import DataError, require_columns, training_columns
-from .utils import get_logger, set_seed
+from .utils import get_logger, interim_path, set_seed
 
 log = get_logger()
 T0 = pd.Timestamp("2018-01-01")
@@ -46,11 +46,13 @@ def clean_day(csv_path):
         raise DataError(f"{csv_path.name}: no valid rows left after cleaning")
     stats = dict(rows_raw=n_raw, header_rows=n_hdr, rows_clean=len(df),
                  benign=int((df.attack == 0).sum()), attack=int(df.attack.sum()))
-    return df.sort_values("ts").reset_index(drop=True), stats
+    # stable sort: ~all flows share their 1-s timestamp with others; an unstable sort orders those ties
+    # differently per numpy/platform (Windows vs WSL), which silently misaligns saved scores and labels
+    return df.sort_values("ts", kind="stable").reset_index(drop=True), stats
 
 
 def load_day(cfg, day):
-    cache = cfg["paths"]["work_dir"] / "interim" / f"{day}.parquet"
+    cache = interim_path(cfg, day)
     if cache.exists():
         return pd.read_parquet(cache)
     log.info("cleaning %s", day)
@@ -74,10 +76,17 @@ def _adapter(cfg):
     name = cfg["data"].get("dataset", "cicids2018")
     if name == "suricata2017":
         from .adapters import suricata2017 as a
+        if cfg["data"].get("context_features", False):
+            # same 12 context features as CSE-CIC-IDS2018, computed per full day before any split or sampling
+            return ((lambda c, day: a.with_context(a.load_day(c, day))),
+                    lambda: GenericSpace({**a.MODALITIES, **CONTEXT_MODALITY}, cfg["data"]["clip"]))
     elif name == "unsw_nb15":
         from .adapters import unsw as a
     else:
-        return load_day, lambda: FeatureSpace(cfg["data"]["clip"])
+        ctx = cfg["data"].get("context_features", False)
+        # context is computed on the full cleaned day, before the train/val split and any sampling
+        loader = (lambda c, day: add_context_features(load_day(c, day))) if ctx else load_day
+        return loader, lambda: FeatureSpace(cfg["data"]["clip"], context=ctx)
     return (lambda c, day: a.load_day(c, day)), lambda: GenericSpace(a.MODALITIES, cfg["data"]["clip"])
 
 
@@ -132,6 +141,28 @@ def prepare(cfg):
 def load_split(cfg, name):
     z = np.load(cfg["paths"]["work_dir"] / "processed" / f"{name}.npz")
     return {k: z[k] for k in z.files}
+
+
+def check_aligned(z, day, split, name):
+    """fail if a score file was computed on a different row order than the current processed test split
+    (e.g. scores from a WSL run evaluated against a split rebuilt on Windows). Old files without labels pass."""
+    s = z[f"test_{day}"]
+    if len(s) != len(split["y"]) or (f"y_{day}" in z.files and not np.array_equal(z[f"y_{day}"], split["y"])):
+        raise DataError(f"scores/{name}.npz does not match the processed split test_{day} (different rows or row order); "
+                        "rerun `train` on the current `prepare` output")
+
+
+def load_scored(path):
+    """{day: (scores, y, label)} from one score file on its own, without the processed splits (per-attack analysis)."""
+    z = np.load(path)
+    if "label_names" not in z.files:
+        raise DataError(f"{path}: written before labels were stored with the scores; rerun `train`")
+    names, out = z["label_names"], {}
+    for k in z.files:
+        if k.startswith("test_"):
+            day = k[len("test_"):]
+            out[day] = (z[k], z[f"y_{day}"], names[z[f"label_{day}"]])
+    return out
 
 
 def load_feature_space(cfg):

@@ -1,19 +1,20 @@
-# Explainable self-supervised anomaly detection on CSE-CIC-IDS2018
+# config.yaml + temporal_context modality (flow context from timestamp, port, flow shape). Compare results_context/ with results/
 paths:
   raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2018}"
-  work_dir: "${IDS_WORK_DIR:-work_multiday}"
-  results_dir: "${IDS_RESULTS_DIR:-results_multiday}"
+  work_dir: "${IDS_WORK_DIR:-work_context}"
+  results_dir: "${IDS_RESULTS_DIR:-results_context}"
 
 data:
   seed: 42
   # chronological protocol: fit on benign traffic of the earliest days, test on later days
-  train_days: [Wednesday-14-02-2018, Thursday-15-02-2018, Wednesday-21-02-2018]
-  test_days: [Thursday-22-02-2018, Thursday-01-03-2018, Friday-02-03-2018]
+  train_days: [Wednesday-14-02-2018, Thursday-15-02-2018]
+  test_days: [Wednesday-21-02-2018, Thursday-22-02-2018, Thursday-01-03-2018, Friday-02-03-2018]
   val_fraction: 0.15          # latest slice of benign train-period traffic (threshold calibration)
   max_train_rows: 300000
   max_sup_rows: 400000        # labelled sample for the supervised baseline
   max_test_rows_per_day: 1100000
   clip: 8.0                   # clip standardised features to +-clip
+  context_features: true      # adds the 5th modality temporal_context (features.CONTEXT_MODALITY)
 
 model:
   hidden: 128
@@ -48,9 +49,7 @@ explain:
   n_alerts: 30
   top_k: 10
   shap_permutations: 40
-  lime_samples: 1000   # 4000 was tried: more stable (0.574->0.741) but *less* faithful (deletion drop
-                        # -0.060->-0.106) -- LIME's local-linear surrogate is systematically, not just
-                        # noisily, misaligned with this non-linear score; see results*/explanation_quality*.csv
+  lime_samples: 1000
   background_size: 100
 
 report:                       # signature context for the analyst report (Suricata + Zeek run on this victim pcap)
