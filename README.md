@@ -262,6 +262,11 @@ calibrated scores fails because the context score has a much heavier benign tail
 | `rf_supervised` | 0.878 | 0.825 | 0.290 | 0.000 | 0.00% | 0.000 | 0.000 |
 | `ae_concat_knnrole` | 0.586 | 0.367 | 0.438 | 0.015 | 0.87% | 0.027 | 0.028 |
 
+**Latest result.** On this 2-day experiment, the two-view SSL model is the strongest method for ranking attacks: it reaches 0.937 ROC-AUC
+and 0.735 MCC after per-day recalibration, compared with 0.487 ROC-AUC for the flow-only SSL model and 0.878 for the supervised RF.
+The result is not a claim that SSL wins every operating-point metric: the context-only model has slightly higher recall and F1 at this particular
+threshold. A second seed gives the same direction, with two-view SSL at 0.855 ROC-AUC versus 0.796 for the role-only SSL model.
+
 Recall per attack (adapted), flow view / context view / **two-view**: HOIC 0 / 0.995 / **0.995**; LOIC-UDP 1.0 / 0.806 / **1.0**;
 XSS 0.506 / 0 / **0.468**; Web brute force 0.285 / 0 / **0.273**; SQL injection 0.059 / 0 / 0.029; Infiltration 0.032 / 0.238 / 0.100;
 Bot 0.018 / 0.006 / 0.022. The two views are complementary (context: floods and scans; flow: web attacks), and only the fusion gets both, which is
