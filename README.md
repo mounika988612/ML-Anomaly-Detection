@@ -1,5 +1,13 @@
 # Explainable self-supervised anomaly detection (CSE-CIC-IDS2018)
 
+## Requirements
+You need Python 3.10 or newer. For the complete development setup, install the dependencies and run the test suite with:
+```
+pip install -r requirements-dev.txt
+pytest
+```
+The serving dependencies are listed separately in `requirements-serve.txt`. If PyTorch cannot run on Windows, use the WSL2 setup described at the end of this document.
+
 ## Production use (scoring service)
 The research pipeline is complemented by a deployable layer: model **bundle** export, input validation, HTTP API and batch CLI, tests, CI, Docker.
 ```
