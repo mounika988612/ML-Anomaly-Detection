@@ -201,7 +201,7 @@ ROC-AUC / PR-AUC / recall at the benign-validation threshold (fixed threshold, ~
   (0.842 vs 0.829), so the cross-modal contrastive objective is not shown to help. `ae_concat_knnrole` is close behind on most sets.
 - The supervised RF is better in AUC on UNSW and CIC-2018 3-day (it sees the same attack types in training; not a zero-day setting), although its
   fixed 0.5 threshold flags almost nothing on unseen attacks.
-- CIC-2018 recall at the fixed threshold stays 1-4%: benign traffic drifts between days (2-day protocol FPR 16.5% at the validation threshold), so
+- CIC-2018 recall at the fixed threshold stays 1-4%: benign traffic drifts between days (2-day protocol FPR 16.5% at the validation threshold; mostly a label error, not drift, see "Label audit and follow-up experiments E4-E6"), so
   the good ranking does not translate into a usable operating point. Per-day recalibration (`*_adapted`) does not fix this.
 
 **vs Suricata/Zeek on the Thu-22 capture (3-day models, share of attack flows detected)** - `results_multiday/signature_comparison_*.csv`:
@@ -275,7 +275,7 @@ exactly (ROC-AUC 0.7746, fixed threshold), so old and new results are directly c
 
 **Limits.**
 - **Depends on per-day recalibration.** With the fixed validation threshold the DDoS day's benign traffic is still flagged almost entirely
-  (pooled FPR ~16%, as for every method before; `metrics_overall.csv`), although the context view now also flags the attacks there.
+  (pooled FPR ~16%, as for every method before; `metrics_overall.csv`), although the context view now also flags the attacks there. _(Mostly a label error, not drift: see "Label audit and follow-up experiments E4-E6".)_
 - **Sensitive operating point.** At 0.1% / 0.5% target FPR two-view recall collapses to 0.4% / 0.6% (HOIC sits just above the 1% threshold);
   from 1% to 5% it is stable at 0.65-0.72 (`fpr_recall_tradeoff_adapted.csv`).
 - **Bot (2%) and Infiltration (10%) remain mostly missed**; fusion loses part of the context view's Infiltration recall (24%).
@@ -289,6 +289,49 @@ exactly (ROC-AUC 0.7746, fixed threshold), so old and new results are directly c
 Reproduce (WSL2): `python run.py prepare --config config_context.yaml`, then `python run.py train --config config_context.yaml --only ssl_mm_flow
 ssl_only_temporal_context ssl_mm_role ssl_mm_global ssl_no_contrastive ae_concat iforest pca_recon rf_supervised`, then `python run.py evaluate
 --config config_context.yaml` (`logs/run_context.sh` does all three).
+
+## Label audit and follow-up experiments E4-E6 (in progress, 2026-09-25)
+Plan and decision rules are fixed in advance in `results_comparison/PREREGISTRATION.md`. Only seed-42 results exist so far; the 3-seed runs are pending.
+
+**Label error in CSE-CIC-IDS2018** (`docs/LABEL_AUDIT.md`, `scripts/label_audit.py`). On Wed-21, 358,623 flows labelled Benign are the HOIC
+connections recorded in reverse direction (all inside the 22-min HOIC window, one flow shape, ephemeral destination ports). They were 99% of
+Wed-21's "benign" test flows (2-day protocol) and part of the benign training/validation data (3-day protocol). `config_context_clean.yaml` and
+`config_multiday_context_clean.yaml` exclude them (`data.label_exclusions`); older configs and results are unchanged. With clean labels the
+2-day fixed-threshold FPR of the kNN methods drops from ~16% to 1.5-2%. 17.6% of Infiltration flows are feature-for-feature identical to benign
+flows, which caps Infiltration recall for any flow-level detector.
+
+**E4, clean re-evaluation of two-view fusion** (seed 42). New fair baseline `ae_twoview_knnrole`: the plain autoencoder with the same two
+views and min-p fusion.
+
+| setting | two-view SSL | two-view AE | flow view | context view | 5 modalities, one embedding |
+|---|---|---|---|---|---|
+| 2-day clean (dev), adapted ROC-AUC / MCC | 0.932 / 0.724 | 0.922 / 0.701 | 0.522 / 0.011 | 0.883 / 0.734 | 0.642 / 0.063 |
+| 2-day clean (dev), fixed ROC-AUC / MCC | 0.954 / 0.727 | 0.943 / 0.722 | 0.910 / -0.012 | 0.900 / 0.738 | 0.912 / 0.722 |
+| 3-day clean (held-out), fixed ROC-AUC / MCC | **0.874** / 0.174 | 0.840 / 0.112 | 0.849 / 0.052 | 0.738 / 0.182 | 0.764 / 0.154 |
+| 3-day clean (held-out), adapted ROC-AUC / MCC | 0.836 / 0.139 | 0.808 / 0.105 | 0.842 / 0.056 | 0.696 / 0.204 | 0.749 / 0.160 |
+
+Two-view SSL ranks best in most rows, but the AE two-view is close, and at the operating point the context view alone often has the
+higher MCC. Whether the gain belongs to SSL is decided by the pending seeds and block-bootstrap CIs (`scripts/clean_eval.py`).
+`rf_supervised` on the 3-day protocol drops from 0.842 to 0.713 ROC-AUC with clean labels.
+
+**E5, recall at a controlled false-alert rate** (dev only so far).
+- Rejected: a larger or deduplicated kNN reference set (`scripts/knn_reference.py`) did not improve recall at 1% FPR; the full set lost XSS.
+- Flow-level recall at 1% FPR is separability-limited: oracle recall is 2-6% for Bot and 5-26% for Infiltration for every view.
+- Window-level alerting (`scripts/window_alerts.py`): a binomial test on the number of flagged flows per (service role, 5-min) window,
+  calibrated on benign validation windows. On dev, two-view SSL false alerts drop from 48/h ("any flagged flow") to 0.12/h, keeping HOIC and
+  34% of Infiltration but losing the low-volume web attacks. This changes the unit of alerting; it does not make the detector better.
+  Held-out test pending.
+
+**E6, why the contrastive term does not help** (`scripts/contrastive_diagnostics.py`, Suricata2017, 5 seeds).
+- In a 256-flow InfoNCE batch, 82-97% of flows share their exact TCP / HTTP / session block with another flow, mostly all-zero blocks of
+  absent protocols. These negatives cannot be told apart from the positive, so the validation InfoNCE stays at 5.20 +- 0.002 against
+  5.55 at chance.
+- The term leaves the fused embedding measurably unchanged (effective rank, information retained, kNN tail), hence the tie with `ssl_no_contrastive`.
+- What it does learn, cross-modal agreement (xmod AUC 0.82), sits in the projection heads, which the kNN score does not use.
+- Fix under test: `ssl_mm_role_fnmask` masks those false negatives (`fn_mask` in `models.MultiModalSSL._contrast`). The contrastive loss then
+  trains (masked InfoNCE 1.25 vs 2.35); whether detection improves is pending.
+
+Resume: `logs/run_E4b.sh` (remaining seeds), then `logs/run_E56.sh` (E6 training and all analyses), in WSL.
 
 ## Running in WSL2 (if torch is blocked on Windows)
 Windows Smart App Control can block the unsigned DLLs in pip `torch`/`numba` (on this machine it now also blocks scikit-learn), so all

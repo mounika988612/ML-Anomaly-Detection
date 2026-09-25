@@ -90,9 +90,27 @@ def _adapter(cfg):
     return (lambda c, day: a.load_day(c, day)), lambda: GenericSpace(a.MODALITIES, cfg["data"]["clip"])
 
 
+def drop_label_errors(df, day, rules):
+    """label audit (`data.label_exclusions`, see docs/LABEL_AUDIT.md): flows labelled `label` between the first and last flow of
+    attack `during` on `day` carry a wrong label (e.g. the attack's own reverse-direction flows labelled Benign). They are
+    removed from training, validation and evaluation; the context features were already computed with them present,
+    as a sensor would see them."""
+    keep = np.ones(len(df), bool)
+    for r in rules or []:
+        if r["day"] != day:
+            continue
+        t = df.loc[df.Label == r["during"], "ts"]
+        bad = ((df.Label == r["label"]) & df.ts.between(t.min(), t.max())).to_numpy()
+        log.info("%s: %d '%s' flows inside the '%s' window excluded (label audit)", day, int(bad.sum()), r["label"], r["during"])
+        keep &= ~bad
+    return df[keep]
+
+
 def prepare(cfg):
     d = cfg["data"]
     loader, make_fs = _adapter(cfg)
+    base_loader = loader
+    loader = lambda c, day: drop_label_errors(base_loader(c, day), day, d.get("label_exclusions"))
     set_seed(d["seed"])
     proc = cfg["paths"]["work_dir"] / "processed"
     proc.mkdir(parents=True, exist_ok=True)

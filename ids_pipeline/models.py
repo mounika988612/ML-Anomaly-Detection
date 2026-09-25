@@ -25,12 +25,13 @@ def _mlp(i, h, o, depth=1):
 
 
 class MultiModalSSL(nn.Module):
-    def __init__(self, slices, mcfg, use_role=True, contrastive_weight=None):
+    def __init__(self, slices, mcfg, use_role=True, contrastive_weight=None, fn_mask=False):
         super().__init__()
         self.slices = slices
         self.mods = list(slices)
         self.D = max(b for _, b in slices.values())
         self.use_role = use_role
+        self.fn_mask = fn_mask
         self.mask_ratio = mcfg["mask_ratio"]
         self.mod_drop = mcfg["modality_dropout"]
         self.tau = mcfg["temperature"]
@@ -55,15 +56,27 @@ class MultiModalSSL(nn.Module):
         h = self.fuse(torch.cat(zs + [r], 1))
         return self.dec(torch.cat([h, r], 1)), ps
 
-    def _contrast(self, ps):
+    def _contrast(self, ps, x=None):
         if len(ps) < 2 or self.lam == 0:
             return ps[0].new_zeros(())
         ps = [p[:256] for p in ps]      # InfoNCE on a 256-flow sub-batch keeps the pairwise logits cheap
-        tgt = torch.arange(len(ps[0]), device=ps[0].device)
+        n = len(ps[0])
+        tgt = torch.arange(n, device=ps[0].device)
+        same = None
+        if self.fn_mask and x is not None:
+            # false negatives: a flow whose block of modality m is identical to the anchor's has an identical embedding, so
+            # InfoNCE cannot tell it from the positive (on Suricata2017 >90% of flows share an all-zero HTTP/TCP block with
+            # another flow of the batch; scripts/contrastive_diagnostics.py). Such flows are removed from the negatives.
+            xb = x[:n]
+            same = {m: (torch.cdist(xb[:, a:b], xb[:, a:b], compute_mode="donot_use_mm_for_euclid_dist") == 0)
+                    & ~torch.eye(n, dtype=torch.bool, device=xb.device)
+                    for m, (a, b) in self.slices.items()}
         loss = 0.0
         pairs = list(itertools.combinations(range(len(ps)), 2))
         for i, j in pairs:
             logits = ps[i] @ ps[j].T / self.tau
+            if same is not None:
+                logits = logits.masked_fill(same[self.mods[i]] | same[self.mods[j]], float("-inf"))
             loss = loss + 0.5 * (F.cross_entropy(logits, tgt) + F.cross_entropy(logits.T, tgt))
         return loss / len(pairs)
 
@@ -75,7 +88,7 @@ class MultiModalSSL(nn.Module):
                 drop = torch.rand(len(x), 1, device=x.device) < self.mod_drop
                 xin[:, a:b] = xin[:, a:b].masked_fill(drop, 0.0)
         recon, ps = self._forward(xin, role)
-        l_rec, l_con = F.mse_loss(recon, x), self._contrast(ps)
+        l_rec, l_con = F.mse_loss(recon, x), self._contrast(ps, x)
         return l_rec + self.lam * l_con, {"rec": l_rec.item(), "con": l_con.item()}
 
     @torch.no_grad()

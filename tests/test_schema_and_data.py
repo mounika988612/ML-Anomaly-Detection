@@ -91,3 +91,13 @@ def test_clean_day_empty_and_garbage(tmp_path):
 def test_training_columns_cover_the_feature_space():
     cols = set(training_columns())
     assert {"Label", "Timestamp", "Dst Port", "Protocol", "Flow Duration"} <= cols
+
+
+def test_drop_label_errors_only_inside_the_attack_window():
+    import pandas as pd
+    from ids_pipeline.data import drop_label_errors
+    df = pd.DataFrame({"ts": [0, 10, 11, 12, 13, 30], "Label": ["Benign", "Flood", "Benign", "Benign", "Flood", "Benign"]})
+    rule = [{"day": "d1", "label": "Benign", "during": "Flood"}]
+    assert drop_label_errors(df, "d1", rule).ts.tolist() == [0, 10, 13, 30]
+    assert len(drop_label_errors(df, "other_day", rule)) == 6
+    assert len(drop_label_errors(df, "d1", None)) == 6

@@ -11,14 +11,15 @@ from .data import check_aligned, load_split
 from .utils import get_logger
 
 log = get_logger()
-MAIN = ["ssl_mm_twoview_knn", "ssl_mm_role_knn", "ssl_mm_global_knn", "ae_concat_knn", "ae_concat_knnrole", "ssl_mm_role", "ssl_mm_global", "ae_concat",
+MAIN = ["ssl_mm_twoview_knn", "ae_twoview_knnrole", "ssl_mm_role_knn", "ssl_mm_global_knn", "ae_concat_knn", "ae_concat_knnrole", "ssl_mm_role", "ssl_mm_global", "ae_concat",
         "iforest", "pca_recon", "rf_supervised"]
 ABLATION = ["ssl_mm_role_knn", "ssl_mm_global_knn", "ssl_no_contrastive_knn", "ssl_mm_role", "ssl_mm_global", "ssl_no_contrastive",
             "ssl_only_volume_timing", "ssl_only_packet_size", "ssl_only_protocol_flags", "ssl_only_bulk_subflow"]
 # score-level fusion of separately trained views. Fusing the context modality inside one embedding lets the four
 # per-flow modalities drown it out (HOIC ranked below benign traffic); fusing calibrated tail probabilities keeps
 # each view's evidence: an alert fires when either view is extreme relative to its own benign reference.
-TWO_VIEW = {"ssl_mm_twoview_knn": ("ssl_mm_flow_knn", "ssl_only_temporal_context_knn")}
+TWO_VIEW = {"ssl_mm_twoview_knn": ("ssl_mm_flow_knn", "ssl_only_temporal_context_knn"),
+            "ae_twoview_knnrole": ("ae_flow_knnrole", "ae_only_temporal_context_knnrole")}
 
 
 def tail_score(s, ref):
@@ -86,10 +87,10 @@ def run_evaluate(cfg):
         _evaluate(cfg, adapt)
 
 
-def _evaluate(cfg, adapt):
-    """adapt=True: per-day recalibration on the first `adapt_window_sec` seconds of each test day
-    (treated as unlabeled, robust median/MAD), then that window is excluded from the metrics."""
-    sfx = "_adapted" if adapt else ""
+def collect_scores(cfg, adapt):
+    """final test scores and thresholds of every saved method (recalibrated if adapt; two-view and hybrid scores fused), with
+    the labels they are evaluated against. adapt=True: per-day recalibration on the first `adapt_window_sec` seconds of each
+    test day (treated as unlabeled, robust median/MAD), then that window is excluded from the metrics."""
     res = cfg["paths"]["results_dir"]
     days = cfg["data"]["test_days"]
     win = cfg["scoring"].get("adapt_window_sec", 1800)
@@ -145,6 +146,15 @@ def _evaluate(cfg, adapt):
                 m = scores[base]
                 scores[f"hybrid_sig_or_{base}"] = dict(s=m["s"] + 1e6 * sig, thr=m["thr"], lat=m["lat"],
                                                         thr_for=lambda fpr, m=m: m["thr_for"](fpr))
+    return scores, dict(y=y, label=label, ts=ts, day_of=day_of)
+
+
+def _evaluate(cfg, adapt):
+    sfx = "_adapted" if adapt else ""
+    res = cfg["paths"]["results_dir"]
+    days = cfg["data"]["test_days"]
+    scores, t = collect_scores(cfg, adapt)
+    y, label, ts, day_of = t["y"], t["label"], t["ts"], t["day_of"]
     log.info("[%s] evaluating %d methods on %d test flows (%d attacks)",
              "adapted" if adapt else "fixed", len(scores), len(y), y.sum())
 

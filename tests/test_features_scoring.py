@@ -74,3 +74,23 @@ def test_context_features_match_brute_force(benign):
     assert "temporal_context" in fs.slices and {"ctx_shape_60s", "ctx_shape_gap"} <= set(fs.names)
     assert FeatureSpace.from_state(fs.get_state()).slices == fs.slices
     assert "temporal_context" not in FeatureSpace(8.0).fit(ctx).slices
+
+
+def test_fn_mask_removes_duplicate_block_negatives():
+    """InfoNCE with fn_mask drops negatives that share a modality block with the anchor: if every flow has the same block b,
+    every negative is dropped and the masked loss is 0; if all blocks are distinct, the mask changes nothing."""
+    import torch
+    from ids_pipeline.models import MultiModalSSL
+    mcfg = dict(hidden=8, modality_dim=4, latent_dim=4, role_dim=2, proj_dim=4, mask_ratio=0.0, modality_dropout=0.0,
+                contrastive_weight=1.0, temperature=0.2)
+    sl = {"a": (0, 3), "b": (3, 5)}
+    torch.manual_seed(0)
+    x = torch.randn(16, 5)
+    x[:, 3:5] = 0.0                                    # block b absent (all zero) for every flow
+    ps = [torch.nn.functional.normalize(torch.randn(16, 4), dim=-1) for _ in sl]
+    plain = MultiModalSSL(sl, mcfg)._contrast([p.clone() for p in ps], x)
+    masked = MultiModalSSL(sl, mcfg, fn_mask=True)._contrast([p.clone() for p in ps], x)
+    assert masked.item() == 0.0
+    assert plain.item() > 1.0
+    x[:, 3:5] = torch.randn(16, 2)                     # all blocks distinct: the mask changes nothing
+    assert torch.isclose(MultiModalSSL(sl, mcfg, fn_mask=True)._contrast(ps, x), MultiModalSSL(sl, mcfg)._contrast(ps, x))

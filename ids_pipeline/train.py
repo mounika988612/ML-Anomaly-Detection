@@ -20,11 +20,16 @@ def method_specs(fs):
         "ssl_mm_role": dict(kind="ssl", mods=mods, use_role=True, role_aware=True),
         "ssl_mm_global": dict(kind="ssl", mods=mods, use_role=False, role_aware=False),
         "ssl_no_contrastive": dict(kind="ssl", mods=mods, use_role=True, role_aware=True, lam=0.0),
+        # E6: InfoNCE without the false negatives (flows identical to the anchor in one of the two modality blocks)
+        "ssl_mm_role_fnmask": dict(kind="ssl", mods=mods, use_role=True, role_aware=True, fn_mask=True),
         "ae_concat": dict(kind="ae", mods=mods, use_role=False, role_aware=False),
     }
     if "temporal_context" in mods:
         # flow view of the two-view detector (evaluate.TWO_VIEW): the per-flow modalities without the context
         s["ssl_mm_flow"] = dict(kind="ssl", mods=[m for m in mods if m != "temporal_context"], use_role=True, role_aware=True)
+        # the same two views with the plain autoencoder (evaluate.TWO_VIEW "ae_twoview_knnrole"): is the two-view gain SSL's?
+        s["ae_flow"] = dict(kind="ae", mods=[m for m in mods if m != "temporal_context"], use_role=False, role_aware=False)
+        s["ae_only_temporal_context"] = dict(kind="ae", mods=["temporal_context"], use_role=False, role_aware=False)
     for m in mods:
         s[f"ssl_only_{m}"] = dict(kind="ssl", mods=[m], use_role=True, role_aware=True)
     s.update({"iforest": dict(kind="iforest"), "pca_recon": dict(kind="pca"), "rf_supervised": dict(kind="rf")})
@@ -55,7 +60,7 @@ def train_neural(cfg, name, spec, fs, tr, va, tests):
     Xtr, Xva = tr["X"][:, idx], va["X"][:, idx]
     set_seed(cfg["data"]["seed"])
     if spec["kind"] == "ssl":
-        model = MultiModalSSL(sl, mcfg, spec["use_role"], spec.get("lam"))
+        model = MultiModalSSL(sl, mcfg, spec["use_role"], spec.get("lam"), spec.get("fn_mask", False))
     else:
         model = MLPAutoencoder(sl, mcfg)
     t0 = time.time()
@@ -107,7 +112,7 @@ def train_neural(cfg, name, spec, fs, tr, va, tests):
             _save_scores(cfg, vname, kval, _threshold(kval, scfg["target_fpr"]), ktest, (time.time() - t0) / len(kval) * 1e6, tests)
             log.info("[%s] latent kNN scoring done in %.0fs", vname, time.time() - t0)
 
-        if spec["kind"] == "ssl" and len(spec["mods"]) > 1:
+        if spec["kind"] == "ssl" and len(spec["mods"]) > 1 and scfg.get("latefuse_knn", True):
             _train_latefuse_knn(cfg, name, model, spec, idx, tr, va, tests)
 
 

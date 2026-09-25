@@ -1,22 +1,22 @@
-# config_suricata2017.yaml + temporal_context modality (held-out test of the two-view model designed on CSE-CIC-IDS2018)
+# config_multiday_context.yaml + label audit (docs/LABEL_AUDIT.md): Wed-21 HOIC reverse-direction flows labelled Benign excluded. Pre-registered E4-E6 (results_comparison/PREREGISTRATION.md)
 paths:
   raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2018}"
-  work_dir: "${IDS_WORK_DIR:-work_suricata2017_context}"
-  results_dir: "${IDS_RESULTS_DIR:-results_suricata2017_context}"
+  work_dir: "${IDS_WORK_DIR:-work_multiday_context_clean}"
+  results_dir: "${IDS_RESULTS_DIR:-results_multiday_context_clean}"
 
 data:
-  dataset: suricata2017
-  context_features: true      # adds the temporal_context modality (features.CONTEXT_MODALITY), unchanged
-  suricata_parquet: "${IDS_SURICATA_PARQUET:-../external/suricata2017/suricata2017_all.parquet}"
   seed: 42
   # chronological protocol: fit on benign traffic of the earliest days, test on later days
-  train_days: [Monday, Tuesday]
-  test_days: [Wednesday, Thursday, Friday]
+  train_days: [Wednesday-14-02-2018, Thursday-15-02-2018, Wednesday-21-02-2018]
+  test_days: [Thursday-22-02-2018, Thursday-01-03-2018, Friday-02-03-2018]
   val_fraction: 0.15          # latest slice of benign train-period traffic (threshold calibration)
   max_train_rows: 300000
   max_sup_rows: 400000        # labelled sample for the supervised baseline
   max_test_rows_per_day: 1100000
   clip: 8.0                   # clip standardised features to +-clip
+  context_features: true      # adds the 5th modality temporal_context (features.CONTEXT_MODALITY)
+  label_exclusions:           # data.drop_label_errors: excluded from train/val/test, kept for the context features
+    - {day: Wednesday-21-02-2018, label: Benign, during: DDOS attack-HOIC}
 
 model:
   hidden: 128
@@ -41,7 +41,7 @@ scoring:
   min_role_samples: 500
   min_scale_ratio: 0.5        # per-role score scale floored at this fraction of the global scale
   incident_gap_sec: 300       # attack flows of one type with pauses <= this form one incident (0 = off)
-  latefuse_knn: false         # documented negative result (README); skipped from E4 on to save compute (existing E1 scores kept)
+  latefuse_knn: false         # documented negative result (README); skipped to save compute
 
 baselines:
   n_fit_rows: 200000
@@ -52,5 +52,12 @@ explain:
   n_alerts: 30
   top_k: 10
   shap_permutations: 40
-  lime_samples: 1000
+  lime_samples: 1000   # 4000 was tried: more stable (0.574->0.741) but *less* faithful (deletion drop
+                        # -0.060->-0.106) -- LIME's local-linear surrogate is systematically, not just
+                        # noisily, misaligned with this non-linear score; see results*/explanation_quality*.csv
   background_size: 100
+
+report:                       # signature context for the analyst report (Suricata + Zeek run on this victim pcap)
+  capture_dir: "${IDS_CAPTURE_DIR:-../external/pcap/thu22}"
+  day: Thursday-22-02-2018
+  attacker: 18.218.115.60
