@@ -34,9 +34,15 @@ METRICS = ["roc_auc", "macro_attack_auc", "recall_at_1pct", "recall", "fpr"]
 class Ranked:
     """one score vector prepared for fast weighted metrics: ties grouped, groups in ascending score order."""
 
-    def __init__(self, s, y, att, n_att, pred):
+    def __init__(self, s, y, att, n_att, pred, bins=20000):
         u, self.g = np.unique(s, return_inverse=True)
-        self.G, self.y, self.att, self.n_att, self.pred = len(u), y, att, n_att, pred
+        self.G = len(u)
+        if self.G > bins:
+            # rank bins: flows in one bin count as tied, which moves AUC by < 1/bins; keeps every bootstrap resample cheap
+            rank = np.cumsum(np.bincount(self.g, minlength=self.G)) - 1       # last rank of each tie group
+            self.g = np.minimum(rank[self.g] * bins // len(s), bins - 1)
+            self.G = bins
+        self.y, self.att, self.n_att, self.pred = y, att, n_att, pred
 
     def _auc(self, wp, wn):
         """weighted ROC-AUC from per-group positive / negative weights (ties count 1/2)"""
