@@ -110,7 +110,10 @@ def prepare(cfg):
     d = cfg["data"]
     loader, make_fs = _adapter(cfg)
     base_loader = loader
-    loader = lambda c, day: drop_label_errors(base_loader(c, day), day, d.get("label_exclusions"))
+
+    def loader(c, day):
+        return drop_label_errors(base_loader(c, day), day, d.get("label_exclusions"))
+
     set_seed(d["seed"])
     proc = cfg["paths"]["work_dir"] / "processed"
     proc.mkdir(parents=True, exist_ok=True)

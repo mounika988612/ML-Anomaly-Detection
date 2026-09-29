@@ -80,6 +80,7 @@ def test_fn_mask_removes_duplicate_block_negatives():
     """InfoNCE with fn_mask drops negatives that share a modality block with the anchor: if every flow has the same block b,
     every negative is dropped and the masked loss is 0; if all blocks are distinct, the mask changes nothing."""
     import torch
+
     from ids_pipeline.models import MultiModalSSL
     mcfg = dict(hidden=8, modality_dim=4, latent_dim=4, role_dim=2, proj_dim=4, mask_ratio=0.0, modality_dropout=0.0,
                 contrastive_weight=1.0, temperature=0.2)

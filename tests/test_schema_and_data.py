@@ -95,6 +95,7 @@ def test_training_columns_cover_the_feature_space():
 
 def test_drop_label_errors_only_inside_the_attack_window():
     import pandas as pd
+
     from ids_pipeline.data import drop_label_errors
     df = pd.DataFrame({"ts": [0, 10, 11, 12, 13, 30], "Label": ["Benign", "Flood", "Benign", "Benign", "Flood", "Benign"]})
     rule = [{"day": "d1", "label": "Benign", "during": "Flood"}]
