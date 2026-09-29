@@ -1,0 +1,19 @@
+day,label,attacker,victim,start,end,direction,outside_window,note
+Tuesday,FTP-Patator,172.16.0.1,192.168.10.50,09:20,10:20,any,drop,Kali 205.174.165.73 -> web server 205.174.165.68 (inside 192.168.10.50)
+Tuesday,SSH-Patator,172.16.0.1,192.168.10.50,14:00,15:00,any,drop,Kali 205.174.165.73 -> web server 192.168.10.50
+Wednesday,DoS Slowloris,172.16.0.1,192.168.10.50,09:47,10:10,any,drop,Kali -> web server 192.168.10.50
+Wednesday,DoS Slowhttptest,172.16.0.1,192.168.10.50,10:14,10:35,any,drop,Kali -> web server 192.168.10.50
+Wednesday,DoS Hulk,172.16.0.1,192.168.10.50,10:43,11:00,any,drop,Kali -> web server 192.168.10.50
+Wednesday,DoS GoldenEye,172.16.0.1,192.168.10.50,11:10,11:23,any,drop,Kali -> web server 192.168.10.50
+Wednesday,Heartbleed,172.16.0.1,192.168.10.51,15:12,15:32,any,drop,Kali -> Ubuntu 12 205.174.165.66 (inside 192.168.10.51) port 444
+Thursday,Web Attack - Brute Force,172.16.0.1,192.168.10.50,09:20,10:00,any,drop,Kali -> web server 192.168.10.50
+Thursday,Web Attack - XSS,172.16.0.1,192.168.10.50,10:15,10:35,any,drop,Kali -> web server 192.168.10.50
+Thursday,Web Attack - SQL Injection,172.16.0.1,192.168.10.50,10:40,10:42,any,drop,Kali -> web server 192.168.10.50
+Thursday,Infiltration,205.174.165.73,192.168.10.8,14:19,14:21,any,drop,Meta exploit Win Vista (first run)
+Thursday,Infiltration,205.174.165.73,192.168.10.8,14:33,14:35,any,drop,Meta exploit Win Vista (second run)
+Thursday,Infiltration,205.174.165.73,192.168.10.25,14:53,15:00,any,drop,Cool disk - MAC
+Thursday,Infiltration,205.174.165.73,192.168.10.8,15:04,15:45,any,drop,Dropbox download Win Vista (attacker session)
+Thursday,Infiltration - Portscan,192.168.10.8,192.168.10.0/24,15:04,15:45,fwd,benign,second step: portscan from the infected Vista host to all other clients
+Friday,Botnet,205.174.165.73,192.168.10.5;192.168.10.8;192.168.10.9;192.168.10.14;192.168.10.15,10:02,11:02,any,drop,ARES; bots talk to the C&C at the attacker's public address
+Friday,Portscan,172.16.0.1,192.168.10.50,13:55,15:29,any,drop,nmap runs 13:55-14:35 (firewall rules on) and 14:51-15:29 (off)
+Friday,DDoS,172.16.0.1,192.168.10.50,15:56,16:16,any,drop,LOIT from three Win 8.1 hosts 205.174.165.69-71
