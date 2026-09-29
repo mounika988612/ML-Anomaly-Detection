@@ -1,7 +1,8 @@
 """UNSW-NB15 official partition (training-set 175,341 flows / testing-set 82,332 flows).
 
-The public mirror (HF Mireu-Lab/UNSW-NB15) has the two files swapped, so its `test.csv` is the official
-training set. The partition carries no timestamps: the split is the official one, not time-separated.
+Read from `unsw_dir` under the official file names. (The public mirror HF Mireu-Lab/UNSW-NB15 has the two files
+swapped: its `test.csv` is the official training set.) The partition carries no timestamps: the split is the official
+one, not time-separated.
 """
 from pathlib import Path
 
@@ -23,7 +24,7 @@ _SVC_ROLE = {"http": 0, "ssh": 1, "ftp": 2, "ftp-data": 2, "dns": 3, "smtp": 4} 
 
 
 def load_day(cfg, day):
-    f = {"train": "test.csv", "test": "train.csv"}[day]         # swapped on the mirror, see docstring
+    f = {"train": "UNSW_NB15_training-set.csv", "test": "UNSW_NB15_testing-set.csv"}[day]
     d = pd.read_csv(Path(cfg["data"]["unsw_dir"]) / f)
     o = d[[c for c in sum(MODALITIES.values(), []) if c in d]].copy()
     o["proto_tcp"], o["proto_udp"] = (d.proto == "tcp").astype(float), (d.proto == "udp").astype(float)

@@ -6,7 +6,7 @@ paths:
 
 data:
   dataset: unsw_nb15
-  unsw_dir: "${IDS_UNSW_DIR:-../external/unsw}"
+  unsw_dir: "${IDS_UNSW_DIR:-../dataset/UNSW_NB15}"
   seed: 42
   # chronological protocol: fit on benign traffic of the earliest days, test on later days
   train_days: [train]

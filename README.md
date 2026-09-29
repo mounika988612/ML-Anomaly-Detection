@@ -26,7 +26,7 @@ python run.py train      # 8 neural models + 3 baselines -> results/scores/*.npz
 python run.py evaluate   # metrics, per-attack recall, FPR trade-off, time-to-detect, plots
 python run.py explain    # native / SHAP / LIME attribution + analyst text (results/explanations.md)
 ```
-Settings are in `config.yaml`. Paths are relative to the config file and overridable with `IDS_DATA_DIR` (default `../dataset/CICIDS2018`), `IDS_WORK_DIR`, `IDS_RESULTS_DIR`. Outputs: `work/` (cache, models), `results/`.
+Settings are in `config.yaml`. Paths are relative to the config file and overridable with `IDS_DATA_DIR` (default `../dataset/CICIDS2018`), `IDS_UNSW_DIR` (default `../dataset/UNSW_NB15`), `IDS_WORK_DIR`, `IDS_RESULTS_DIR`. Outputs: `work/` (cache, models), `results/`.
 
 ## Protocol
 - Train on **benign only** from Wed-14 and Thu-15 (self-supervised, no attack labels). Latest 15% of that benign traffic = validation, used for the alert threshold (99th percentile = 1% target FPR).
@@ -45,7 +45,7 @@ Settings are in `config.yaml`. Paths are relative to the config file and overrid
 | `rf_supervised` | supervised baseline |
 
 ## Deviations from the proposal you should know about
-- **Where the "multi-modal telemetry" claim is actually demonstrated.** CSE-CIC-IDS2018 and UNSW-NB15 have no DNS/TLS/HTTP logs, only CICFlowMeter flow features, so their "modalities" are four views of one flow record (`features.MODALITIES`). Genuine multi-source telemetry (DNS, HTTP, TLS, SSH, FTP, parsed from Suricata's `eve.json`) exists only for **Suricata2017** (`adapters/suricata2017.py`, `MODALITIES` there). Read the thesis's multi-modal claim as demonstrated on Suricata2017; CSE-CIC-IDS2018/UNSW-NB15 demonstrate scale and the zero-day evaluation protocol with flow-derived pseudo-modalities. `features.MODALITIES` / the adapter interface is the extension point for real Zeek/Suricata sources on Terma data.
+- **Where the "multi-modal telemetry" claim is actually demonstrated.** CSE-CIC-IDS2018 and UNSW-NB15 have no DNS/TLS/HTTP logs, only CICFlowMeter flow features, so their "modalities" are four views of one flow record (`features.MODALITIES`). Genuine multi-source telemetry (DNS, HTTP, TLS, SSH, FTP, parsed from Suricata's `eve.json`) exists only for **Suricata2017** (being rebuilt from the official pcaps; see "Suricata2017 rebuilt" below) (`adapters/suricata2017.py`, `MODALITIES` there). Read the thesis's multi-modal claim as demonstrated on Suricata2017; CSE-CIC-IDS2018/UNSW-NB15 demonstrate scale and the zero-day evaluation protocol with flow-derived pseudo-modalities. `features.MODALITIES` / the adapter interface is the extension point for real Zeek/Suricata sources on Terma data.
 - **Role = service role from destination port** (web, remote_admin, ...) because this release has no IPs. On Terma data use asset role / network zone.
 - The CSVs are truncated at 1,048,576 rows (Excel limit) and contain duplicates; ~20% of Wed-14 rows are duplicates and were dropped.
 - `shap` now imports on this machine (0.52.0) and all `explain` results use `shap.KernelExplainer`. `explain.py` still falls back to a built-in permutation-Shapley estimator if `shap` cannot be imported (an earlier Windows Application Control block on numba).
@@ -101,6 +101,9 @@ Share of attack flows detected (ML models at the 1% FPR validation threshold):
 - Caveat: a single victim capture, three attack types; not a general claim about signature vs anomaly detection.
 
 ## UNSW-NB15 (`config_unsw.yaml` -> `results_unsw/`)
+Data: `../dataset/UNSW_NB15/UNSW_NB15_training-set.csv` (175,341 flows) and `UNSW_NB15_testing-set.csv` (82,332), official
+file names (`data.unsw_dir`, overridable with `IDS_UNSW_DIR`). Some mirrors (HF Mireu-Lab/UNSW-NB15) ship the two files
+swapped as `test.csv`/`train.csv`; check the row counts.
 Official train/test partition; models are fit on the benign flows of the training partition only. UNSW has no timestamps and
 its files are sorted by class, so the adapter uses a seeded random order (the benign validation slice is a random 15%).
 Pooled test (82,332 flows, 55% attacks), ROC-AUC / recall at ~1-2% FPR:
@@ -340,6 +343,18 @@ same min-p fusion. ROC-AUC, seed mean:
 - Conclusion: the latent-kNN score does not benefit from cross-modal alignment, even when the alignment is learned.
 - Lead for future work (post hoc, label-using, not a claim): the fn-mask head's cross-modal inconsistency is itself a strong anomaly score
   (AUC 0.938 +- 0.008 on Suricata2017; Botnet 0.96, SQLi 0.95). The kNN score ignores it, and naive min-p fusion with it lowers pooled AUC.
+
+## Suricata2017 rebuilt from the official pcaps (`docs/SURICATA2017_PROVENANCE.md`)
+All Suricata2017 results above use the Hugging Face parquet `yasirchemmakh/Cicids2017_Suricata_Logs`. It is undocumented (no README,
+author, Suricata version, rule set or labelling method), and its labels are inconsistent with CIC's documentation. There are no Web Brute
+Force/XSS flows, 60,336 "Portscan" flows on Thursday, and 1 Heartbleed flow. Also **0 of 1,177,087 BENIGN flows carry a Suricata alert
+and all 735 alerted flows are attacks**, so the `sig` baseline had perfect precision by construction.
+The dataset is being rebuilt: `scripts/cic2017_suricata.sh` (pinned Suricata 8.0.7 + frozen ET Open rules, optional Zeek 9.0.0) on
+each official day pcap, then `scripts/build_suricata2017.py` (one row per Suricata flow, same schema, labels only from CIC's attack schedule
+`docs/cic2017_attack_schedule.csv` by attacker IP, victim IP and time window; `alerted` = ET Open rules only). Every build writes
+`LABEL_AUDIT.md` + `manifest.json`. Configs: `config_suricata2017_rebuilt.yaml`, `config_suricata2017_rebuilt_context.yaml`.
+**Status: pipeline built and tested (`tests/test_build_suricata2017.py`, and end-to-end on a real capture); waiting for the CIC-IDS2017 pcaps.**
+Until the rebuilt results exist, the Suricata2017 numbers above (RQ2, E1/E3/E6) rest on the HF data and should not be reported as final.
 
 ## Running in WSL2 (if torch is blocked on Windows)
 Windows Smart App Control can block the unsigned DLLs in pip `torch`/`numba` (on this machine it now also blocks scikit-learn), so all

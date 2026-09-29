@@ -1,4 +1,8 @@
-"""CIC-IDS2017 as seen by Suricata (HF: yasirchemmakh/Cicids2017_Suricata_Logs).
+"""CIC-IDS2017 as seen by Suricata. Two sources with the same schema (`data.suricata_parquet`):
+rebuilt  - Suricata run by us on the official pcaps, labels from CIC's attack schedule (scripts/build_suricata2017.py,
+           config_suricata2017_rebuilt*.yaml, docs/SURICATA2017_PROVENANCE.md);
+HF       - yasirchemmakh/Cicids2017_Suricata_Logs, undocumented and with labels inconsistent with CIC (config_suricata2017*.yaml,
+           kept only for comparison with earlier results).
 
 Each row is one flow with the Suricata events attached to it (flow / dns / http / tls / ssh / ftp /
 fileinfo / anomaly), Suricata's own decision (`alerted`, Emerging Threats rules) and the CIC ground
