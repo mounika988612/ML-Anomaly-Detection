@@ -1,6 +1,6 @@
 """UNSW-NB15 official partition (training-set 175,341 flows / testing-set 82,332 flows).
 
-Read from `unsw_dir` under the official file names. (The public mirror HF Mireu-Lab/UNSW-NB15 has the two files
+Read from `unsw_dir` under the official file names (the underscore spelling `..._training_set.csv` also works). (The public mirror HF Mireu-Lab/UNSW-NB15 has the two files
 swapped: its `test.csv` is the official training set.) The partition carries no timestamps: the split is the official
 one, not time-separated.
 """
@@ -8,6 +8,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from ..schema import DataError
 
 MODALITIES = {
     "volume": ["dur", "spkts", "dpkts", "sbytes", "dbytes", "rate", "sload", "dload", "smean", "dmean"],
@@ -23,9 +25,18 @@ MODALITIES = {
 _SVC_ROLE = {"http": 0, "ssh": 1, "ftp": 2, "ftp-data": 2, "dns": 3, "smtp": 4}   # ids of features.ROLE_NAMES
 
 
+def _find_file(unsw_dir, day):
+    """Official name (`training-set`) or the underscore spelling some mirrors use (`training_set`)."""
+    part = {"train": "training", "test": "testing"}[day]
+    names = [f"UNSW_NB15_{part}-set.csv", f"UNSW_NB15_{part}_set.csv"]
+    for n in names:
+        if (Path(unsw_dir) / n).is_file():
+            return Path(unsw_dir) / n
+    raise DataError(f"UNSW-NB15 {day} file not found in {unsw_dir} (looked for {' or '.join(names)})")
+
+
 def load_day(cfg, day):
-    f = {"train": "UNSW_NB15_training-set.csv", "test": "UNSW_NB15_testing-set.csv"}[day]
-    d = pd.read_csv(Path(cfg["data"]["unsw_dir"]) / f)
+    d = pd.read_csv(_find_file(cfg["data"]["unsw_dir"], day))
     o = d[[c for c in sum(MODALITIES.values(), []) if c in d]].copy()
     o["proto_tcp"], o["proto_udp"] = (d.proto == "tcp").astype(float), (d.proto == "udp").astype(float)
     o["proto_other"] = 1.0 - o.proto_tcp - o.proto_udp

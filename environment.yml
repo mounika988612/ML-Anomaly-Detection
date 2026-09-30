@@ -1,0 +1,27 @@
+# Conda environment for the anomaly pipeline on Windows.
+#   conda env create -f environment.yml      (run from the anomaly_pipeline folder)
+#   conda activate mlenv
+#   ren "%CONDA_PREFIX%\Lib\site-packages\torch\lib\libiomp5md.dll" libiomp5md.dll.bak
+#     (one-time: torch then uses conda's OpenMP library instead of its own copy; see README section 2)
+#
+# pyarrow and numba come from conda on purpose: use the conda versions of these two packages,
+# not the pip ones. torch comes from the PyTorch CPU index.
+name: mlenv
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - pyarrow
+  - numba
+  - scikit-learn
+  - matplotlib
+  - pyyaml
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cpu
+      - torch==2.13.0
+      - lime
+      - shap
+      - -e .[research,dev]

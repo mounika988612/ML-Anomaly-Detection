@@ -102,3 +102,13 @@ def test_drop_label_errors_only_inside_the_attack_window():
     assert drop_label_errors(df, "d1", rule).ts.tolist() == [0, 10, 13, 30]
     assert len(drop_label_errors(df, "other_day", rule)) == 6
     assert len(drop_label_errors(df, "d1", None)) == 6
+
+
+def test_unsw_file_found_under_both_spellings(tmp_path):
+    from ids_pipeline.adapters.unsw import _find_file
+    (tmp_path / "UNSW_NB15_training-set.csv").write_text("x\n")
+    (tmp_path / "UNSW_NB15_testing_set.csv").write_text("x\n")
+    assert _find_file(tmp_path, "train").name == "UNSW_NB15_training-set.csv"
+    assert _find_file(tmp_path, "test").name == "UNSW_NB15_testing_set.csv"
+    with pytest.raises(DataError):
+        _find_file(tmp_path / "missing", "train")
