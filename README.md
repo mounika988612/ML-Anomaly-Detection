@@ -1,8 +1,10 @@
 # Explainable self-supervised anomaly detection for network traffic
 
 This repository is the code for my master thesis. It trains self-supervised, role-aware anomaly detectors on
-network flow data (mainly CSE-CIC-IDS2018, plus UNSW-NB15 and a Suricata-based CIC-IDS2017 set), compares them with
-classic baselines and signature IDSs (Suricata, Zeek), and explains each alert in plain language for a security analyst.
+network telemetry. The primary dataset is **CIC-IDS2017, rebuilt by running Suricata on the official pcaps** (real
+multi-source telemetry: flow, TCP, DNS, HTTP and session events; section 8.8). CSE-CIC-IDS2018 and UNSW-NB15 are the two
+comparison datasets. The models are compared with classic ML baselines and signature IDSs (Suricata, Zeek), and each
+alert is explained in plain language for a security analyst.
 The models learn only from benign traffic, so every attack in the test data is new to them. The evaluation is
 therefore a zero-day setting.
 
@@ -118,6 +120,9 @@ The data lives next to this folder, not inside it:
 D:\Thesis source code\
 ├── anomaly_pipeline\          <- this repository
 ├── dataset\
+│   ├── CICIDS2017\            <- official CIC-IDS2017 pcaps (primary dataset, ~52 GB)
+│   │   ├── Monday-WorkingHours.pcap   (benign only: training day)
+│   │   └── Tuesday-  Wednesday-  Thursday-  Friday-WorkingHours.pcap   (attack days)
 │   ├── CICIDS2018\            <- CSE-CIC-IDS2018 CSVs, one per day
 │   │   ├── Wednesday-14-02-2018.csv   Thursday-15-02-2018.csv   (training days)
 │   │   └── Wednesday-21-02-2018.csv   Thursday-22-02-2018.csv   Thursday-01-03-2018.csv   Friday-02-03-2018.csv
@@ -125,13 +130,22 @@ D:\Thesis source code\
 │       ├── UNSW_NB15_training-set.csv   (175,341 flows)
 │       └── UNSW_NB15_testing-set.csv    (82,332 flows)
 └── external\
+    ├── cic2017\               <- CIC-IDS2017 rebuilt by us (scripts/cic2017_suricata.sh + build_suricata2017.py)
+    │   ├── rules\                       frozen ET Open rule file (sha256 + fetch date), shared by all days
+    │   ├── <Day>\flows.parquet          one labelled row per Suricata flow, plus day_manifest.json and suri\ logs
+    │   ├── suricata2017_rebuilt.parquet all five days (1,963,820 flows, 14 attack types)
+    │   └── LABEL_AUDIT.md, manifest.json
     ├── pcap\thu22\            <- Thu-22 victim capture + Suricata/Zeek output (signature comparison)
-    └── suricata2017\          <- suricata2017_all.parquet (Suricata-based CIC-IDS2017)
+    └── suricata2017\          <- suricata2017_all.parquet (Hugging Face Suricata2017, superseded; kept for comparison)
 ```
 
-- **UNSW-NB15 file names:** both the official spelling (`UNSW_NB15_training-set.csv`) and the underscore spelling
-  that some mirrors use (`UNSW_NB15_training_set.csv`) work. The Hugging Face mirror `Mireu-Lab/UNSW-NB15` ships the
-  two files swapped as `test.csv`/`train.csv`, so check the row counts above.
+- **CIC-IDS2017 pcaps** come from https://www.unb.ca/cic/datasets/ids-2017.html (registration form). Only files with
+  their final `*-WorkingHours.pcap` name count; `Unconfirmed *.crdownload` files are unfinished or duplicate browser
+  downloads (~11 GB each) and can be deleted once the real file is there. Sections 4 (E7) and 8.7 describe how the pcaps
+  become `suricata2017_rebuilt.parquet`. Each day's raw `eve.json` (1.5–2.5 GB) is deleted once its `flows.parquet` is built.
+- **UNSW-NB15 file names:** use the official names `UNSW_NB15_training-set.csv` and `UNSW_NB15_testing-set.csv` (as in
+  `dataset\UNSW_NB15\`). The underscore spelling some mirrors use (`UNSW_NB15_training_set.csv`) also works. The Hugging
+  Face mirror `Mireu-Lab/UNSW-NB15` ships the two files swapped as `test.csv`/`train.csv`, so check the row counts above.
 - Paths in the configs are relative to the config file. You can point them elsewhere with environment variables:
   `IDS_DATA_DIR`, `IDS_UNSW_DIR`, `IDS_SURICATA_PARQUET`, `IDS_CAPTURE_DIR`, `IDS_WORK_DIR` and `IDS_RESULTS_DIR`.
 
@@ -167,10 +181,12 @@ Each config is a complete experiment with its own `work_*` and `results_*` folde
 | `config_multiday_context.yaml` | 3-day + temporal context | `results_multiday_context\` |
 | `config_context_clean.yaml` | 2-day + context, mislabelled HOIC flows removed | `results_context_clean\` |
 | `config_multiday_context_clean.yaml` | 3-day + context, clean labels | `results_multiday_context_clean\` |
-| `config_suricata2017.yaml` | Suricata-based CIC-IDS2017 (real multi-source telemetry), Hugging Face data | `results_suricata2017\` |
+| **`config_cic2017_monday.yaml`** | **CIC-IDS2017 rebuilt, primary protocol P1: train Monday, test Tue–Fri (section 8.8)** | `results_cic2017_monday\` |
+| `config_suricata2017_rebuilt.yaml` | CIC-IDS2017 rebuilt, protocol P2: train Mon+Tue, test Wed–Fri (with the supervised RF) | `results_suricata2017_rebuilt\` |
+| `config_suricata2017_rebuilt_context.yaml` | rebuilt data + temporal context (not run in E7) | `results_suricata2017_rebuilt_context\` |
+| `config_cic2017_3day.yaml`, `config_cic2017_3day_sup.yaml` | interim E7a run on Mon–Wed only (superseded by E7) | `results_cic2017_3day*\` |
+| `config_suricata2017.yaml` | Hugging Face Suricata2017 (superseded, section 8.7) | `results_suricata2017\` |
 | `config_suricata2017_context.yaml` | the same + temporal context (two-view model) | `results_suricata2017_context\` |
-| `config_suricata2017_rebuilt.yaml` | Suricata2017 rebuilt from the official pcaps (section 8.7) | `results_suricata2017_rebuilt\` |
-| `config_suricata2017_rebuilt_context.yaml` | rebuilt data + temporal context | `results_suricata2017_rebuilt_context\` |
 | `config_unsw.yaml` | UNSW-NB15, official train/test split | `results_unsw\` |
 
 Examples:
@@ -217,6 +233,24 @@ bash logs/run_E4.sh
 The older `run_all.sh`, `run_knn.sh`, `run_unsw.sh` and `run_compare.sh` in the root folder reproduce the first rounds
 of results. `docker_ids.sh` runs Suricata and Zeek on a pcap and needs Docker Desktop.
 
+**E7 (CIC-IDS2017 primary dataset)** is driven by `logs/run_E7.sh` and needs Docker Desktop for the sensor step. Set
+`PY` to the `mlenv` interpreter first (in Git Bash, `python` may be the base environment):
+
+```bash
+export PY=/d/SoftwareTools/Users/maida/anaconda3/envs/mlenv/python.exe
+for d in Monday Tuesday Wednesday Thursday Friday; do
+  bash logs/run_E7.sh sensors $d ../dataset/CICIDS2017/$d-WorkingHours.pcap   # Suricata (~1 h/day), flows.parquet, eve.json deleted
+done
+bash logs/run_E7.sh parquet                      # suricata2017_rebuilt.parquet + LABEL_AUDIT.md: read the audit before training
+bash logs/run_E7.sh train config_cic2017_monday.yaml config_suricata2017_rebuilt.yaml   # 3 seeds each + bootstrap CIs (~5 h)
+$PY scripts/e7_report.py --p1 config_cic2017_monday.yaml --p2 config_suricata2017_rebuilt.yaml --tag 5day
+```
+
+(Wednesday's file is named `Wednesday-workingHours.pcap` with a lower-case `w`.) Runs of several hours need two
+precautions on this laptop: start them so they do not die with the terminal or Claude session (e.g. through WMI,
+`Invoke-CimMethod -ClassName Win32_Process -MethodName Create`), and keep Windows awake with `logs/keep_awake.ps1`
+(it stops after `-Hours` or when `logs/keep_awake.stop` exists). See section 10.
+
 ---
 
 ## 5. Project structure
@@ -255,7 +289,8 @@ anomaly_pipeline\
 │   ├── window_alerts.py           E5: window-level alerting at a controlled false-alert rate
 │   ├── contrastive_diagnostics.py E6: why the contrastive loss term does not help
 │   ├── operating_point_analysis.py, alert_aggregation.py, compare_proposed_vs_baselines.py
-│   ├── cic2017_suricata.sh, build_suricata2017.py   rebuild of the Suricata2017 dataset from pcaps
+│   ├── cic2017_suricata.sh, build_suricata2017.py   CIC-IDS2017 pcaps -> Suricata -> labelled flow table (+ --out for a subset of days)
+│   ├── e7_report.py               E7: hypotheses H1-H7, CIC-IDS2017 tables/figures, cross-dataset comparison
 │   ├── eda.py                     basic dataset statistics
 │   └── loadtest.py                load test for a running scoring service
 │
@@ -295,6 +330,8 @@ CSV / parquet ──> data.py / adapters ──> features.py ──> train.py �
 | `ssl_mm_twoview_knn` | **two-view** model (only with `data.context_features`): `ssl_mm_flow_knn` (4 per-flow modalities) and `ssl_only_temporal_context_knn` (5th modality: traffic context) fused by min-p on tail probabilities |
 | `ae_concat`, `iforest`, `pca_recon` | unsupervised baselines (`*_knn`, `*_knnrole` = the autoencoder with the same kNN scorer) |
 | `rf_supervised` | supervised baseline |
+| `suricata_signature` | rule-based baseline: the flow raised at least one Suricata ET Open alert (Suricata datasets only; no training) |
+| `hybrid_sig_or_<method>` | Suricata alert OR the anomaly model's alert, e.g. `hybrid_sig_or_ssl_mm_role_knn` |
 
 ### Protocol
 
@@ -309,6 +346,8 @@ CSV / parquet ──> data.py / adapters ──> features.py ──> train.py �
 |---|---|---|---|
 | 2-day | `config.yaml` | Wed-14, Thu-15 | Wed-21 (DDoS), Thu-22 (web attacks), Thu-01 (infiltration), Fri-02 (bot) |
 | 3-day | `config_multiday.yaml` | Wed-14, Thu-15, Wed-21 | Thu-22, Thu-01, Fri-02 |
+| **CIC-IDS2017 P1** | `config_cic2017_monday.yaml` | Monday | Tuesday, Wednesday, Thursday, Friday (all 14 attack types) |
+| CIC-IDS2017 P2 | `config_suricata2017_rebuilt.yaml` | Monday, Tuesday | Wednesday, Thursday, Friday |
 
 `evaluate` writes every table twice. The first version uses the fixed threshold from the benign validation data.
 The second (`*_adapted`) uses per-day recalibration: the first 30 minutes of each test day serve as an unlabeled
@@ -343,7 +382,9 @@ configs cannot be served yet, because the service does not compute context featu
 
 The numbers below come from the `results*\metrics_overall*.csv` files. Read them in this order: the latent-kNN
 scoring (8.1) is the current proposed method; the later sections add the temporal-context view, the label audit and
-the pre-registered follow-up experiments.
+the pre-registered follow-up experiments. **The final results on the primary dataset (CIC-IDS2017 rebuilt from the
+official pcaps) are in section 8.8.** Wherever sections 8.1–8.5 report "Suricata2017", they mean the Hugging Face data,
+which section 8.7 explains is not defensible; those numbers are kept for the record only.
 
 ### 8.1 Latent-space scoring: the improved SSL method (`ssl_*_knn`)
 
@@ -378,7 +419,7 @@ ROC-AUC / PR-AUC / recall at the benign-validation threshold (fixed threshold, ~
 
 | dataset | `ssl_mm_role_knn` | `ae_concat_knnrole` | `ae_concat` (old score) | `iforest` | `ssl_mm_role` (old score) | supervised RF | Suricata signatures |
 |---|---|---|---|---|---|---|---|
-| Suricata2017 | **0.981 / 0.968 / 0.69** | 0.948 / 0.936 / 0.41 | 0.914 / 0.859 / 0.00 | 0.957 / 0.914 / 0.23 | 0.943 / 0.840 / 0.00 | 0.678 / 0.627 / 0.00 | 0.501 / 0.421 / 0.00 |
+| Suricata2017 (HF, superseded by 8.8) | **0.981 / 0.968 / 0.69** | 0.948 / 0.936 / 0.41 | 0.914 / 0.859 / 0.00 | 0.957 / 0.914 / 0.23 | 0.943 / 0.840 / 0.00 | 0.678 / 0.627 / 0.00 | 0.501 / 0.421 / 0.00 |
 | UNSW-NB15 | 0.928 / 0.947 / 0.67 | 0.928 / 0.944 / 0.61 | 0.910 / 0.929 / 0.64 | 0.827 / 0.850 / 0.22 | 0.892 / 0.888 / 0.10 | **0.985 / 0.989 / 0.98** | - |
 | CIC-2018 3-day | 0.829 / 0.435 / 0.02 | 0.792 / 0.361 / 0.03 | 0.705 / 0.336 / 0.02 | 0.525 / 0.160 / 0.01 | 0.614 / 0.207 / 0.09 | **0.893 / 0.686** / 0.00 | - |
 | CIC-2018 2-day | **0.779 / 0.460** / 0.01 | 0.745 / 0.425 / 0.01 | 0.593 / 0.320 / 0.01 | 0.434 / 0.256 / 0.00 | 0.485 / 0.276 / 0.02 | 0.568 / 0.391 / 0.00 | - |
@@ -644,10 +685,105 @@ rules (and optionally Zeek 9.0.0) on each official day pcap. `scripts/build_suri
 Suricata flow with the same schema, labelled only from CIC's attack schedule (`docs/cic2017_attack_schedule.csv`) by
 attacker IP, victim IP and time window. Every build writes `LABEL_AUDIT.md` and `manifest.json`.
 
-**Status:** the rebuild pipeline is built and tested (`tests/test_build_suricata2017.py`, plus end-to-end on a real
-capture) and is waiting for the CIC-IDS2017 pcaps. Once `../external/cic2017/suricata2017_rebuilt.parquet` exists, run
-`config_suricata2017_rebuilt.yaml` and `config_suricata2017_rebuilt_context.yaml`. Until the rebuilt results exist,
-the Suricata2017 numbers above (RQ2, E1/E3/E6) rest on the Hugging Face data and should not be reported as final.
+**Status (2026-10-03): rebuilt and used.** All five official pcaps were processed (Suricata 8.0.7, image pinned by
+digest, one ET Open rule file for all days, `HOME_NET` = 192.168.10.0/24). Zeek was skipped for disk space; it was optional.
+
+| day | Suricata flows | benign | attack flows (labelled from the schedule only) | excluded |
+|---|---|---|---|---|
+| Monday | 343,005 | 343,005 | none (benign-only day) | 0 |
+| Tuesday | 294,902 | 287,910 | FTP-Patator 4,010; SSH-Patator 2,551 | 431 |
+| Wednesday | 471,217 | 292,083 | DoS Hulk 161,096; GoldenEye 7,530; Slowhttptest 4,222; Slowloris 3,895; Heartbleed 1 | 2,390 |
+| Thursday | 334,452 | 265,761 | Infiltration-Portscan 66,514; Web Brute Force 1,362; XSS 679; Infiltration 14; SQL Injection 12 | 110 |
+| Friday | 524,643 | 264,355 | Portscan 161,264; DDoS 96,813; Botnet 743 | 1,468 |
+
+What `LABEL_AUDIT.md` showed (full notes in `results_comparison/PREREGISTRATION.md`, E7):
+- **No lost state on any day** (flow/stream memcap and alert-queue counters 0; every packet decoded), and the same rules sha256 on all days.
+- **Every attack window is dominated by the scheduled attacker** with the expected ports (FTP 21, SSH 22, web/DoS/DDoS 80,
+  Heartbleed 444, Botnet 8080).
+- **Excluded, not relabelled** (`outside_window = drop`): SSH-Patator continues ~20 min past its published end (428
+  flows); the Heartbleed victim's ordinary HTTPS to the firewall address all day (2,248 flows); the five bots keep
+  beaconing to the C&C (205.174.165.73:8080) from 11:02 to 17:00 after the published Botnet window (1,456 flows).
+  Excluded flows are neither benign nor attack, so no method gains from them.
+- Infiltration-Portscan includes ~3,000 DNS flows of the infected host (time-window label). Heartbleed (1 flow) and
+  Infiltration (14) are too small to interpret per class.
+- **Suricata ET alerts on 0.71% of benign flows** (2.10% on Monday), against 0.00% in the Hugging Face data. This is the
+  honest false-positive rate of the signature baseline.
+- Suricata flows are bidirectional connections, so there are fewer of them than CICFlowMeter rows (e.g. Monday 343k vs ~530k).
+
+The Hugging Face results in sections 8.1–8.5 are not overwritten; the rebuilt data is evaluated in section 8.8.
+
+### 8.8 CIC-IDS2017 as the primary dataset: pre-registered experiment E7 (2026-10-02/03)
+
+E7 was pre-registered in `results_comparison/PREREGISTRATION.md` (hypotheses H1–H7) before any Tuesday–Friday pcap was
+processed. It uses the shipped hyper-parameters (no tuning on this dataset), seeds 42, 1 and 2, and 95% block-bootstrap
+confidence intervals of paired differences (`scripts/clean_eval.py`). Tables and figures: `results_comparison/E7_5day_tables.md`,
+`table_E7_5day_*.csv` and `figE7_5day_{scorecard,recall_per_attack,cross_dataset_auc}.png`, made by `scripts/e7_report.py`.
+
+| protocol | config | train (benign only) | test |
+|---|---|---|---|
+| **P1 (primary)** | `config_cic2017_monday.yaml` | Monday (291,539 flows; last 15% = threshold) | Tue–Fri: 1,620,815 flows, 510,706 attacks, all 14 types unseen |
+| P2 | `config_suricata2017_rebuilt.yaml` | Monday + Tuesday (RF also sees Tuesday's labelled Patator flows) | Wed–Fri: 1,326,344 flows, 504,145 attacks |
+
+The supervised RF has no place in P1, because Monday contains no attack labels to learn from; P2 exists to measure it.
+
+**P1 results, fixed threshold (1% target FPR on Monday's validation slice), mean of 3 seeds:**
+
+| method | ROC-AUC | PR-AUC | recall | realised FPR | MCC | incident recall | false alerts/h |
+|---|---|---|---|---|---|---|---|
+| Suricata ET signatures (rule-based) | 0.501 | 0.316 | 0.004 | 0.28% | 0.01 | 0.73 | 93 |
+| **Proposed `ssl_mm_role_knn`** | **0.945 ± 0.006** | 0.858 | 0.115 ± 0.189 | 0.50% | 0.18 | 0.70 | 169 |
+| Hybrid: Suricata OR proposed | 0.942 | 0.844 | 0.118 | 0.77% | 0.18 | **0.91** | 261 |
+| `ae_concat_knnrole` (AE + same scorer) | 0.936 | **0.875** | **0.295** | 0.96% | **0.44** | 0.88 | 327 |
+| `ae_concat` (reconstruction error) | 0.937 | 0.748 | 0.000 | 0.15% | −0.02 | 0.06 | 53 |
+| `iforest` | 0.953 | 0.825 | 0.086 | 1.26% | 0.14 | 0.59 | 427 |
+| `pca_recon` | 0.923 | 0.704 | 0.000 | 0.17% | −0.02 | 0.09 | 57 |
+| `ssl_mm_global_knn` (no roles) | 0.792 | 0.689 | 0.085 | 0.70% | 0.17 | 0.83 | 237 |
+| `ssl_no_contrastive_knn` | 0.944 | 0.856 | 0.156 | 0.47% | 0.26 | 0.62 | 160 |
+
+P2 (Wed–Fri, fixed): proposed 0.951 ROC-AUC / recall 0.070; `ae_concat_knnrole` 0.961 / 0.262; `iforest` 0.957 / 0.050;
+Suricata 0.499 / 0.001; **`rf_supervised` 0.612 / 0.004** (FPR 0%).
+
+**Pre-registered hypotheses:**
+
+| H | claim | outcome | evidence (P1; paired ROC-AUC difference, 95% CI) |
+|---|---|---|---|
+| H1 (RQ1) | SSL detects unseen attacks: AUC ≥ 0.90 and beats AE / iForest / PCA | **not supported** | AUC 0.945, but vs AE +0.008 [−0.019, 0.034], vs iForest −0.009 [−0.043, 0.017], vs PCA +0.021 [−0.004, 0.043] |
+| H2 (RQ1/RQ4) | beats the rule-based IDS at a controlled false-alert rate | supported | recall 0.115 vs 0.004 at FPR 0.50% |
+| H3 | signatures + anomaly model together | supported | incident recall 0.91 vs 0.70 / 0.73 |
+| H4 (RQ2) | multiple telemetry sources beat every single source | supported | flow +0.013 [0.005, 0.020], tcp +0.19, http +0.14, session +0.49, dns +0.74 (all CIs > 0) |
+| H5 (obj. 4) | role-aware beats global | supported | +0.153 [0.007, 0.329] |
+| H6 (RQ1) | supervised learning fails on unseen attacks | supported | P2: RF recall 0.004 vs 0.070 |
+| H7 | the gain is not only the kNN scorer | **not supported** | vs `ae_concat_knnrole` +0.009 [−0.025, 0.044] |
+
+**Recall per attack (P1, fixed, seed mean).** Suricata catches what has a rule: FTP-Patator 0.49, SQL injection 0.67,
+Infiltration 0.21, Heartbleed (1 flow). It catches nothing of Botnet, DoS, DDoS, Portscan or Web Brute Force. The
+proposed model adds Botnet 0.27, Portscan 0.28, FTP-Patator 0.33, Slowloris 0.19 and Infiltration-Portscan 0.14, but
+hardly any DoS Hulk (0.005) or DDoS (0.005). `ae_concat_knnrole` catches DDoS 0.98 and Slowloris 0.57; `iforest` is the
+only method with some DoS Hulk (0.25) and GoldenEye (0.38). Web XSS, SQL injection and SSH-Patator stay close to 0 for
+every anomaly model.
+
+**What this supports.**
+1. Trained only on benign traffic, the proposed model ranks unseen attacks well (ROC-AUC 0.945 P1, 0.951 P2) and far
+   better than the signature IDS, whose ranking is at chance (0.50) because it alerts on so few attack flows.
+2. The supervised RF collapses on attack types it has not seen (0.61 AUC, recall 0.004), which is the zero-day gap the
+   proposal argues from.
+3. The multi-modal and role-aware design choices both hold up with confidence intervals on real Suricata telemetry.
+4. Signatures and the anomaly model are complementary: together they find 91% of attack incidents.
+
+**What it does not support (to be stated in the thesis).**
+- The SSL encoder is not shown to be better than simpler unsupervised models: Isolation Forest, PCA and especially the
+  autoencoder with the same role-aware kNN scorer are statistically tied with it in ROC-AUC, and the AE+kNN has higher
+  recall and MCC. The contrastive term again has no effect (vs `ssl_no_contrastive_knn` +0.001 [−0.001, 0.003]).
+- **The operating point is unstable across seeds.** Proposed recall at the fixed threshold is 0.005 / 0.007 / 0.334
+  (seeds 42 / 1 / 2) at a stable ROC-AUC (0.938–0.950): the Monday-calibrated threshold lands just above or just below
+  the large DoS Hulk/DDoS score cluster. `iforest` and `ssl_no_contrastive_knn` show the same pattern. Per-day
+  recalibration raises the proposed recall to 0.38 (FPR 1.9%) but does not remove this sensitivity.
+- Post hoc, not a claim: the single-modality reconstruction score `ssl_only_tcp` had the best seed-42 result (ROC-AUC
+  0.974, recall 0.86, MCC 0.86). It was not pre-registered and needs its own pre-registered test before it is used.
+
+**Interim run E7a.** Before Thursday and Friday were available, P1 was started on Monday–Wednesday only
+(`config_cic2017_3day*.yaml`, `results_cic2017_3day\`, seed 42 only). It is reported as a single-seed interim result:
+proposed ROC-AUC 0.919, recall ≈ 0; `iforest` 0.979; Suricata recall 0.011. It is superseded by E7.
 
 ---
 
@@ -655,10 +791,16 @@ the Suricata2017 numbers above (RQ2, E1/E3/E6) rest on the Hugging Face data and
 
 - **Where the multi-modal telemetry claim is actually shown.** CSE-CIC-IDS2018 and UNSW-NB15 have no DNS/TLS/HTTP logs,
   only CICFlowMeter flow features. Their "modalities" are four views of one flow record (`features.MODALITIES`). Real
-  multi-source telemetry (DNS, HTTP, TLS, SSH, FTP from Suricata's `eve.json`) exists only for **Suricata2017**
-  (`adapters/suricata2017.py`). The multi-modal claim is therefore demonstrated on Suricata2017, while CSE-CIC-IDS2018
-  and UNSW-NB15 show scale and the zero-day protocol. The adapter interface is the extension point for real
-  Zeek/Suricata sources on Terma data.
+  multi-source telemetry (flow, TCP, DNS, HTTP and session events from Suricata's `eve.json`) exists only for
+  **CIC-IDS2017 rebuilt from the official pcaps** (`adapters/suricata2017.py`, section 8.8). The multi-modal claim (RQ2)
+  is therefore demonstrated on that dataset, while CSE-CIC-IDS2018 and UNSW-NB15 serve as comparison datasets for scale
+  and the zero-day protocol. The adapter interface is the extension point for real Zeek/Suricata sources on Terma data.
+- **CIC-IDS2017 labels are time-window labels** from CIC's published schedule: all traffic between the scheduled
+  attacker and victim inside the window counts as attack, including failed attempts and replies (the same unit CIC
+  used). Traffic the schedule cannot explain is excluded, not guessed (section 8.7). ET Open rules from 2026 know these
+  2017 attacks in hindsight, so the signature baseline is an optimistic upper bound for a signature IDS of that time.
+- **The proposed SSL model ties simpler unsupervised models on CIC-IDS2017** (H1 and H7 not supported, section 8.8),
+  and its fixed-threshold recall depends strongly on the seed.
 - **Role = service role derived from the destination port** (web, remote_admin, ...), because the datasets have no IPs.
   On Terma data this would be the asset role or network zone.
 - The CSE-CIC-IDS2018 CSVs are truncated at 1,048,576 rows (the Excel limit) and contain duplicates; ~20% of the
@@ -687,3 +829,8 @@ the Suricata2017 numbers above (RQ2, E1/E3/E6) rest on the Hugging Face data and
 | UNSW run fails with file not found | The two CSVs must be in `dataset\UNSW_NB15\` (or the folder in `IDS_UNSW_DIR`), named `UNSW_NB15_training-set.csv` / `UNSW_NB15_testing-set.csv` (underscores also work). |
 | `error: ...` from `run.py` about a config or column | `ConfigError` / `DataError`: the message names the file or column. Check the paths in section 3. |
 | Old results were overwritten | Set `IDS_RESULTS_DIR` / `IDS_WORK_DIR` before experimenting (section 4). |
+| `failed to connect to the docker API ... dockerDesktopLinuxEngine` | Docker Desktop is not running. Start it and wait until `docker info` answers before `run_E7.sh sensors`. |
+| Suricata on one day takes many hours instead of ~1 h | Windows went to sleep (this laptop sleeps after 5 min idle, also on mains power), and Suricata pauses with it. Run `logs/keep_awake.ps1` during long jobs. |
+| A long run stops when the terminal, VS Code or the Claude session closes | Child processes of the session are stopped with it. Start long jobs through WMI (`Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine=...}`). A Windows scheduled task does not work with Git Bash (exit `0xC000013A`). |
+| `python` in Git Bash is Python 3.13 / packages missing | Git Bash finds the base Anaconda python. Use the `mlenv` interpreter explicitly (`export PY=.../envs/mlenv/python.exe`, as `run_E7.sh` expects). |
+| `explain --method ssl_mm_role_knn` fails with `FileNotFoundError ... ssl_mm_role_knn.pkl` | `explain` works on the trained network, not on a scoring variant. Use the base name (`--method ssl_mm_role`, the default). |

@@ -330,6 +330,7 @@ def main(argv=None):
     ap.add_argument("--force", action="store_true", help="rebuild days whose flows.parquet exists")
     ap.add_argument("--hf-parquet", type=Path, default=ROOT.parent / "external" / "suricata2017" / "suricata2017_all.parquet")
     ap.add_argument("--cic-csv-dir", type=Path, help="CIC TrafficLabelling CSVs, optional cross-check")
+    ap.add_argument("--out", type=Path, help="write the parquet of the built days here even if days are missing (interim runs)")
     a = ap.parse_args(argv)
     sched = load_schedule(a.schedule)
     for d in a.days:
@@ -353,6 +354,8 @@ def main(argv=None):
         print("WARNING: days were processed with different rule files")
     if not missing:
         all_df.to_parquet(a.root / "suricata2017_rebuilt.parquet", index=False)
+    if a.out:
+        all_df.to_parquet(a.out, index=False)
     (a.root / "manifest.json").write_text(json.dumps(manifest, indent=1, default=str))
     hf = pd.read_parquet(a.hf_parquet, columns=["class", "Day", "alerted"]) if a.hf_parquet and a.hf_parquet.exists() else None
     audit(a.root, days, sched, a.pad, all_df, manifest, hf, a.cic_csv_dir)
