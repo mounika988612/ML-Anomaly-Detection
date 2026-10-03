@@ -1,0 +1,26 @@
+# Generated pipeline data and reports
+work/
+work_*/
+results/
+results_*/
+logs/
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# Local secrets and editor files
+.env
+.env.*
+!.env.example
+.vscode/
+models/
+*.egg-info/
+build/
+dist/
+.ruff_cache/

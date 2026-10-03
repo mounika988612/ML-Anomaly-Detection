@@ -1,2 +1,0 @@
-day,flows,sampled,attacks,attack_types
-test,82332,82332,45332,"Analysis, Backdoor, DoS, Exploits, Fuzzers, Generic, Reconnaissance, Shellcode, Worms"

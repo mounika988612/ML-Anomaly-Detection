@@ -1,26 +1,14 @@
-# Generated pipeline data and reports
-work/
-work_*/
-results/
-results_*/
-logs/
-
-# Python caches and local environments
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.venv/
-venv/
-env/
-
-# Local secrets and editor files
-.env
-.env.*
-!.env.example
-.vscode/
-models/
-*.egg-info/
-build/
-dist/
-.ruff_cache/
+# Datasets and large generated data never go into git (no Git LFS either: on 2026-10-03 LFS copied the pcaps into
+# .git/lfs and filled the disk). Keep code, configs and docs only; the datasets stay local (README section 3).
+dataset/
+external/
+rerun/
+EDA/
+*.pcap
+*.pcapng
+*.crdownload
+anomaly_pipeline/work*/
+anomaly_pipeline/results_*/
+!anomaly_pipeline/results_comparison/
+anomaly_pipeline/logs/*.log
+anomaly_pipeline/models/
