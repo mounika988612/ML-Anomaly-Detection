@@ -1,4 +1,4 @@
-# Explainable self-supervised anomaly detection on CSE-CIC-IDS2018
+# CSE-CIC-IDS2018, 2-day protocol (comparison dataset; the primary dataset is CIC-IDS2017: config_cic2017_monday.yaml)
 paths:
   raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2018}"
   work_dir: "${IDS_WORK_DIR:-work}"

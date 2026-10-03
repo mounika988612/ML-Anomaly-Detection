@@ -1,6 +1,6 @@
 # Suricata2017 rebuilt from the official CIC-IDS2017 pcaps (scripts/build_suricata2017.py, docs/SURICATA2017_PROVENANCE.md)
 paths:
-  raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2018}"
+  raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2017}"        # official pcaps (read by scripts/cic2017_suricata.sh, not by the pipeline)
   work_dir: "${IDS_WORK_DIR:-work_suricata2017_rebuilt}"
   results_dir: "${IDS_RESULTS_DIR:-results_suricata2017_rebuilt}"
 

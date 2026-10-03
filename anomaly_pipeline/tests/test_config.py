@@ -6,7 +6,7 @@ import yaml
 
 from ids_pipeline.utils import ROOT, ConfigError, load_config, validate_config
 
-BASE = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+BASE = yaml.safe_load((ROOT / "config_cic2018.yaml").read_text(encoding="utf-8"))
 
 
 def write(tmp_path, cfg):

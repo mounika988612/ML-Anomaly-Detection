@@ -53,7 +53,7 @@ def keys(df):
 
 
 def main():
-    cfg = load_config(ROOT / "config.yaml")
+    cfg = load_config(ROOT / "config_cic2018.yaml")
     win_rows, id_rows, train_keys = [], [], []
     for day in DAYS:
         df = load_day(cfg, day)

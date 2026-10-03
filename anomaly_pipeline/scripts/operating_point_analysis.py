@@ -3,7 +3,7 @@
 For each config: pooled ROC-AUC with bootstrap 95% CI, per-attack ROC-AUC (attack vs all benign),
 and recall at 1/2/5% FPR where the threshold is taken on TEST benign scores (label-using upper bound,
 not deployable - it separates ranking quality from calibration/drift).
-Usage: python scripts/operating_point_analysis.py [config.yaml ...]
+Usage: python scripts/operating_point_analysis.py [config_cic2017_monday.yaml ...]
 """
 import sys
 from pathlib import Path
@@ -61,4 +61,4 @@ def main(cfgs):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:] or ["config.yaml", "config_multiday.yaml", "config_cic2017_monday.yaml", "config_unsw.yaml"])
+    main(sys.argv[1:] or ["config_cic2017_monday.yaml", "config_cic2018.yaml", "config_multiday.yaml", "config_unsw.yaml"])

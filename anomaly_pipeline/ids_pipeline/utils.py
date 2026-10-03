@@ -67,7 +67,7 @@ def load_config(path=None):
     """Load a YAML config. `${VAR:-default}` is expanded from the environment and every path is
     resolved relative to the config file, so no absolute machine-specific path is needed.
     Output directories are created; input directories are only checked when a stage reads them."""
-    path = Path(path or ROOT / "config.yaml")
+    path = Path(path or ROOT / "config_cic2017_monday.yaml")
     if not path.is_file():
         raise ConfigError(f"config file not found: {path}")
     try:
