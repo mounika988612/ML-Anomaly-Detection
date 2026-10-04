@@ -8,7 +8,7 @@ import torch
 from .baselines import IForest, PCARecon, SupervisedRF
 from .data import load_feature_space, load_split
 from .models import MLPAutoencoder, MultiModalSSL, batched_components, batched_embed, batched_embed_modalities, train_model
-from .scoring import Calibrator, LatentKNN, tail_score
+from .scoring import Calibrator, LatentKNN, TailEnsemble, tail_score
 from .utils import get_logger, set_seed
 
 log = get_logger()
@@ -179,6 +179,39 @@ def fuse_experts(cfg, fs, tests):
     log.info("[%s] min-p fusion of %d modality experts, threshold %.3f", EXPERTS, len(parts), thr)
 
 
+ENSEMBLE = "ssl_mm_ensemble"
+
+
+def seed_results_dir(cfg, seed):
+    """results folder of one seed: the config's own seed uses results_dir, extra seeds `<results_dir>_seed<N>` (scripts/multiseed.py)"""
+    base = cfg["paths"]["results_dir"]
+    return base if seed == cfg["data"]["seed"] else base.parent / f"{base.name}_seed{seed}"
+
+
+def fuse_ensemble(cfg, fs, tests):
+    """`ssl_mm_ensemble`: the E9 selection (PREREGISTRATION.md, C5), built from the score files of the seeds in
+    `scoring.ensemble_seeds` (default: the config's seed, 1 and 2; extra seeds come from scripts/multiseed.py)."""
+    seeds = list(dict.fromkeys([cfg["data"]["seed"]] + list(cfg["scoring"].get("ensemble_seeds", [1, 2]))))
+    parts = ["ssl_mm_role_knn"] + [f"ssl_only_{m}" for m in fs.slices]
+    dirs = [seed_results_dir(cfg, s) / "scores" for s in seeds]
+    missing = [str(d / f"{p}.npz") for d in dirs for p in parts if not (d / f"{p}.npz").exists()]
+    if len(parts) < 3 or missing:
+        log.info("[%s] skipped: missing %s", ENSEMBLE, missing[:3] or "single-modality experts")
+        return
+    zs = [{p: np.load(d / f"{p}.npz") for p in parts} for d in dirs]
+    fusion = TailEnsemble("ssl_mm_role_knn", parts[1:]).fit([{p: z[p]["val"] for p in parts} for z in zs])
+    val = fusion.transform([{p: z[p]["val"] for p in parts} for z in zs])
+    test = {d: fusion.transform([{p: z[p][f"test_{d}"] for p in parts} for z in zs]) for d in tests}
+    thr = _threshold(val, cfg["scoring"]["target_fpr"])
+    lat = float(sum(z[p]["lat_ms_per_1k"] for z in zs for p in parts))
+    _save_scores(cfg, ENSEMBLE, val, thr, test, lat, tests)
+    d = cfg["paths"].get("models_dir") or cfg["paths"]["work_dir"] / "models"
+    d.mkdir(parents=True, exist_ok=True)
+    with open(d / f"{ENSEMBLE}.pkl", "wb") as f:
+        pickle.dump(dict(spec=dict(kind="ensemble", seeds=seeds, parts=parts), fusion=fusion, thr=thr), f)
+    log.info("[%s] %d seeds x (latent kNN + %d experts), threshold %.3f", ENSEMBLE, len(seeds), len(parts) - 1, thr)
+
+
 def train_baseline(cfg, name, spec, tr, va, sup, tests):
     b, seed = cfg["baselines"], cfg["data"]["seed"]
     if spec["kind"] == "rf":
@@ -213,3 +246,5 @@ def run_train(cfg, only=None):
                      {d: t["sig"].astype(np.float32) for d, t in tests.items()}, 0.0, tests)
     if cfg["scoring"].get("expert_fusion", True) and (not only or EXPERTS in only or any(o.startswith("ssl_only_") for o in only)):
         fuse_experts(cfg, fs, tests)
+    if cfg["scoring"].get("ensemble", True) and (not only or ENSEMBLE in only):
+        fuse_ensemble(cfg, fs, tests)

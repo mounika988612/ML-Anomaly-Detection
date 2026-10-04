@@ -13,6 +13,23 @@ def tail_score(s, ref, presorted=False):
     return -np.log((len(r) - np.searchsorted(r, s, "right") + 1) / (len(r) + 1))
 
 
+def tail_score_ext(s, ref, presorted=False, q=0.99):
+    """tail_score without the ceiling: above the q-quantile of the benign reference the empirical tail (which stops at
+    -log(1/(n+1))) is replaced by an exponential tail fitted to the reference scores above that quantile (mean excess).
+    Identical to tail_score up to the quantile. Used only to explain alerts (explain._ensemble_scorer), where a saturated
+    score cannot show which features drive it."""
+    r = ref if presorted else np.sort(ref)
+    s = np.asarray(s, np.float64)
+    out = tail_score(s, r, presorted=True)
+    k = int(q * len(r))
+    u = r[k]
+    excess = r[k:] - u
+    scale = excess.mean() if excess.mean() > 0 else 1.0
+    hi = s > u
+    out[hi] = -np.log((len(r) - k) / (len(r) + 1)) + (s[hi] - u) / scale
+    return out
+
+
 def min_p(parts, refs):
     """min-p fusion: the view with the smallest tail probability decides (max of -log p)."""
     return np.max([tail_score(s, r) for s, r in zip(parts, refs)], 0)
@@ -96,3 +113,35 @@ class LatentKNN:
             m = roles == r
             out[m] = self._dist(emb[m], self.role_ref.get(int(r), self.ref))
         return out
+
+
+class TailEnsemble:
+    """`ssl_mm_ensemble` (E9 selection C5, PREREGISTRATION.md): per seed, min-p of the role-aware latent-kNN score and the
+    min-p fusion of the single-modality experts; then the mean over seeds. Every level works on tail scores
+    (-log upper-tail probability among that level's own benign validation scores), so tied benign scores cannot dominate.
+    fit/transform take one dict {score name: raw score array} per seed, aligned row by row."""
+
+    def __init__(self, knn="ssl_mm_role_knn", experts=()):
+        self.knn, self.experts = knn, list(experts)
+
+    def _seed(self, raw, ref, fit, extrapolate=False):
+        t = tail_score_ext if extrapolate else tail_score
+        tk = t(raw[self.knn], ref[self.knn], presorted=True)
+        te = np.max([t(raw[p], ref[p], presorted=True) for p in self.experts], 0)
+        if fit:
+            ref["_experts"] = np.sort(te)
+        c = np.maximum(tk, t(te, ref["_experts"], presorted=True))
+        if fit:
+            ref["_minp"] = np.sort(c)
+        return t(c, ref["_minp"], presorted=True)
+
+    def fit(self, val_members):
+        self.refs = [{k: np.sort(np.asarray(v, np.float64)) for k, v in m.items()} for m in val_members]
+        for m, ref in zip(val_members, self.refs):
+            self._seed({k: np.asarray(v, np.float64) for k, v in m.items()}, ref, fit=True)
+        return self
+
+    def transform(self, members, extrapolate=False):
+        """extrapolate=True: the unsaturated score for explanations (tail_score_ext); same value below each level's 99th percentile"""
+        return np.mean([self._seed({k: np.asarray(v, np.float64) for k, v in m.items()}, ref, fit=False, extrapolate=extrapolate)
+                        for m, ref in zip(members, self.refs)], 0).astype(np.float32)

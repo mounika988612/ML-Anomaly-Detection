@@ -4,10 +4,10 @@ This is the code behind my master thesis (DTU Compute, in collaboration with Ter
 normal network traffic looks like from unlabeled telemetry, flag whatever does not fit, and explain each alert in words
 an analyst can act on.
 
-My **primary dataset is CIC-IDS2017**. I did not use the usual CSV release. Instead I ran Suricata myself on the five
-official pcap files, so the models see real multi-source telemetry: flow records plus TCP, DNS, HTTP and TLS/SSH/FTP
-session events, the same kind of data Suricata produces in a real SOC. **CSE-CIC-IDS2018** and **UNSW-NB15** are my two
-comparison datasets.
+I use three datasets: **CIC-IDS2017**, **CSE-CIC-IDS2018** and **UNSW-NB15**. For CIC-IDS2017 I did not use the usual
+CSV release. Instead I ran Suricata myself on the five official pcap files, so the models see real multi-source
+telemetry: flow records plus TCP, DNS, HTTP and TLS/SSH/FTP session events, the same kind of data Suricata produces in a
+real SOC.
 
 The models only ever train on benign traffic. Every attack in the test data is therefore new to them, which is the
 zero-day setting the thesis is about. I compare them with three kinds of baselines:
@@ -26,8 +26,8 @@ a command-line tool.
 4. [Running the pipeline](#4-running-the-pipeline)
 5. [Project structure](#5-project-structure)
 6. [Methods and evaluation protocol](#6-methods-and-evaluation-protocol)
-7. [Results on CIC-IDS2017 (primary dataset)](#7-results-on-cic-ids2017-primary-dataset)
-8. [Results on the comparison datasets](#8-results-on-the-comparison-datasets)
+7. [Results on CIC-IDS2017](#7-results-on-cic-ids2017)
+8. [Results on CSE-CIC-IDS2018 and UNSW-NB15](#8-results-on-cse-cic-ids2018-and-unsw-nb15)
 9. [Explanations and analyst reports](#9-explanations-and-analyst-reports)
 10. [Scoring service (production use)](#10-scoring-service-production-use)
 11. [Deviations from the proposal and known limits](#11-deviations-from-the-proposal-and-known-limits)
@@ -47,7 +47,7 @@ pytest                                   :: 87 tests, about 2 minutes
 python run.py all                        :: CIC-IDS2017: prepare -> train -> evaluate -> explain
 ```
 
-Without `--config`, `run.py` runs the primary experiment (`config_cic2017_monday.yaml`): train on Monday, test on
+Without `--config`, `run.py` runs the default experiment (`config_cic2017_monday.yaml`): train on Monday, test on
 Tuesday to Friday. It needs the Suricata flow table `..\external\cic2017\suricata2017_rebuilt.parquet`. If that file is
 not there yet, build it from the pcaps first (section 4, "Building CIC-IDS2017 from the pcaps"). Results end up in
 `results_cic2017_monday\`.
@@ -125,11 +125,11 @@ The data sits next to this folder, not inside it, and is not in git:
 D:\Thesis source code\
 ├── anomaly_pipeline\          <- this repository
 ├── dataset\
-│   ├── CICIDS2017\            <- PRIMARY: the five official CIC-IDS2017 pcaps (~52 GB)
+│   ├── CICIDS2017\            <- the five official CIC-IDS2017 pcaps (~52 GB)
 │   │   ├── Monday-WorkingHours.pcap        benign only, used for training
 │   │   └── Tuesday- Wednesday- Thursday- Friday-WorkingHours.pcap   attack days
-│   ├── CICIDS2018\            <- comparison: CSE-CIC-IDS2018 CSVs, one per day
-│   └── UNSW_NB15\             <- comparison: UNSW_NB15_training-set.csv (175,341) and UNSW_NB15_testing-set.csv (82,332)
+│   ├── CICIDS2018\            <- CSE-CIC-IDS2018 CSVs, one per day
+│   └── UNSW_NB15\             <- UNSW_NB15_training-set.csv (175,341) and UNSW_NB15_testing-set.csv (82,332)
 └── external\
     ├── cic2017\               <- my Suricata build of CIC-IDS2017 (section 4)
     │   ├── rules\                       the frozen ET Open rule file (sha256 + fetch date), same for every day
@@ -205,7 +205,7 @@ python run.py all
 ### What you get
 
 - `work_*\` holds caches, the feature space and the trained models. It can be deleted at any time and is rebuilt on
-  the next run (I only keep `work_cic2017_monday\`, which `explain` needs for the primary models).
+  the next run (I only keep `work_cic2017_monday\`, which `explain` needs for the default CIC-IDS2017 models).
 - `results_*\scores\*.npz` holds the raw validation and test scores of every method.
 - `metrics_overall.csv` / `metrics_overall_adapted.csv`: ROC-AUC, PR-AUC, precision, recall, FPR, MCC and F1 per method,
   at the fixed validation threshold and after per-day recalibration.
@@ -254,8 +254,8 @@ anomaly_pipeline\
 │   ├── features.py            feature spaces, service-role assignment, temporal-context features
 │   ├── models.py              the multi-modal SSL network and the plain autoencoder
 │   ├── baselines.py           Isolation Forest, PCA reconstruction, supervised Random Forest
-│   ├── scoring.py             per-role score calibration, latent-kNN scoring, tail-probability (min-p) fusion
-│   ├── train.py               trains every method, writes validation/test scores, fuses the modality experts
+│   ├── scoring.py             per-role calibration, latent-kNN scoring, min-p fusion, the E9 ensemble (TailEnsemble)
+│   ├── train.py               trains every method, writes scores, builds ssl_mm_experts and ssl_mm_ensemble
 │   ├── evaluate.py            metrics, per-attack recall, trade-off curves, incidents, plots, hybrids
 │   ├── explain.py             SHAP, LIME and native attributions + their quality checks
 │   ├── analyst_report.py      turns alerts + attributions + Suricata context into readable reports
@@ -268,6 +268,7 @@ anomaly_pipeline\
 │   ├── e7_report.py               E7 hypotheses, CIC-IDS2017 tables and figures
 │   ├── clean_eval.py, multiseed.py  seed-averaged metrics and bootstrap confidence intervals
 │   ├── explore_fusion.py          the post-hoc modality-expert analysis (section 7.4)
+│   ├── e9_devtest.py              E9: choose on Tuesday, test once on Wednesday-Friday (section 7.5)
 │   ├── label_audit.py, knn_reference.py, window_alerts.py, contrastive_diagnostics.py   E4–E6 analyses
 │   ├── hparam_search.py, operating_point_analysis.py, alert_aggregation.py, compare_proposed_vs_baselines.py
 │   └── eda.py, loadtest.py
@@ -314,6 +315,7 @@ training embeddings **of the same service role**. Nothing in training or scoring
 | `ssl_mm_global_knn` | no role information at all (ablation for role-awareness) |
 | `ssl_no_contrastive_knn` | without the contrastive term (ablation) |
 | `ssl_only_<modality>` | a model that sees one telemetry source only (ablation for multi-modality) |
+| **`ssl_mm_ensemble`** | **the improved model from E9** (section 7.5): 3-seed ensemble of min-p(`ssl_mm_role_knn`, `ssl_mm_experts`) |
 | `ssl_mm_experts` | post-hoc variant: the single-source models fused by min-p (section 7.4) |
 | `ae_concat`, `ae_concat_knnrole` | plain autoencoder: reconstruction error, and with the *same* role-aware kNN scorer |
 | `iforest`, `pca_recon` | unsupervised ML baselines |
@@ -332,7 +334,7 @@ training embeddings **of the same service role**. Nothing in training or scoring
 
 | protocol | config | train (benign only) | test |
 |---|---|---|---|
-| **CIC-IDS2017 P1 (primary)** | `config_cic2017_monday.yaml` | Monday | Tuesday–Friday, all 14 attack types |
+| **CIC-IDS2017 P1** (default) | `config_cic2017_monday.yaml` | Monday | Tuesday–Friday, all 14 attack types |
 | CIC-IDS2017 P2 | `config_suricata2017_rebuilt.yaml` | Monday, Tuesday | Wednesday–Friday |
 | CSE-CIC-IDS2018 2-day | `config_cic2018.yaml` | Wed-14, Thu-15 | Wed-21, Thu-22, Thu-01, Fri-02 |
 | CSE-CIC-IDS2018 3-day | `config_multiday.yaml` | Wed-14, Thu-15, Wed-21 | Thu-22, Thu-01, Fri-02 |
@@ -340,11 +342,11 @@ training embeddings **of the same service role**. Nothing in training or scoring
 
 `evaluate` writes every table twice: once with the fixed threshold from the benign validation data, and once
 (`*_adapted`) after per-day recalibration, where the first 30 minutes of each test day act as an unlabeled reference
-window (and are then left out of the metrics). The fixed threshold is the primary mode.
+window (and are then left out of the metrics). The fixed threshold is the main mode.
 
 ---
 
-## 7. Results on CIC-IDS2017 (primary dataset)
+## 7. Results on CIC-IDS2017
 
 ### 7.1 How the dataset was built
 
@@ -475,9 +477,54 @@ features, so those experts' spread is zero and every small deviation blew up. I 
 with `python scripts/explore_fusion.py` (output in `results_explore\`). The full run is in
 `results_experts_cic2017_monday\`.
 
+### 7.5 Improving the operating point: dev/test experiment E9
+
+E7 left two problems: a tie in ranking, and an alert threshold that swings with the seed. E9 tried to fix the second one
+without retraining, using a clean dev/test split. All candidates were trained on Monday only, **Tuesday** was used to pick
+one, and **Wednesday–Friday** was tested once after the choice was written down (`PREREGISTRATION.md`, E9;
+`scripts/e9_devtest.py`). One caveat: these days' labels had already been seen in E7, so this is weaker evidence than E7.
+
+Tuesday picked the candidate with the best PR-AUC: a **3-seed ensemble of min-p(E7 kNN score, modality experts)**. It
+averages three encoders, and within each one it lets the latent-kNN score and the five single-source experts back each
+other up. To keep things fair, the baselines were ensembled the same way.
+
+| Wed–Fri test, fixed threshold | ROC-AUC | PR-AUC | recall | FPR | MCC |
+|---|---|---|---|---|---|
+| **SSL ensemble (E9 selection)** | 0.954 | **0.928** | **0.631** | 1.8% | **0.686** |
+| E7 `ssl_mm_role_knn` (seed mean) | 0.945 | 0.886 | 0.114 | 0.5% | 0.172 |
+| `iforest` (3-seed ensemble) | **0.955** | 0.862 | 0.074 | 1.3% | 0.160 |
+| `ae_concat_knnrole` (3-seed ensemble) | 0.941 | 0.907 | 0.210 | 1.0% | 0.347 |
+| `pca_recon` | 0.922 | 0.751 | 0.000 | 0.2% | −0.02 |
+| Suricata signatures | 0.499 | 0.380 | 0.001 | 0.3% | −0.02 |
+
+- **At the operating point, it beats every baseline with confidence intervals above zero.** MCC is higher than
+  Isolation Forest (+0.53 [0.12, 0.94]), the autoencoder with the same scorer (+0.34 [0.07, 0.67]), PCA
+  (+0.71 [0.42, 0.94]) and Suricata (+0.71 [0.42, 0.94]). It finds 63% of attack flows at a 1.8% false-positive rate,
+  where the best baseline finds 21%.
+- **On ranking it still ties** the unsupervised baselines (ROC-AUC vs iForest −0.002 [−0.05, 0.04]), so H9.1 is not supported.
+- It clearly improves on the E7 model (MCC +0.51 [0.32, 0.70]).
+
+The improvement comes from ensembling and from combining evidence of different scores at the scoring stage. It does not
+come from a better encoder.
+
+**Running it.** `ssl_mm_ensemble` is a normal pipeline method. It needs the models of all three seeds, so train the extra
+seeds first, then let `train` build the ensemble from the saved scores (no retraining), and evaluate and explain it:
+
+```bat
+python run.py all
+python scripts\multiseed.py --config config_cic2017_monday.yaml --seeds 1 2
+python run.py train --only ssl_mm_ensemble
+python run.py evaluate
+python run.py explain --method ssl_mm_ensemble
+```
+
+The seeds come from `scoring.ensemble_seeds` (default `[1, 2]`, plus the config's own seed). Rebuilt this way, it gives
+exactly the E9 numbers. For its alerts, `explain` reloads each seed's network and five experts, and refits that seed's
+kNN reference exactly as in training.
+
 ---
 
-## 8. Results on the comparison datasets
+## 8. Results on CSE-CIC-IDS2018 and UNSW-NB15
 
 ### 8.1 Overview
 
@@ -490,13 +537,13 @@ ROC-AUC / PR-AUC / recall at the benign-validation threshold (~1% target FPR):
 | CSE-CIC-IDS2018 3-day | 0.829 / 0.435 / 0.02 | 0.792 / 0.361 / 0.03 | 0.705 / 0.336 / 0.02 | 0.525 / 0.160 / 0.01 | **0.893 / 0.686** / 0.00 | – |
 | CSE-CIC-IDS2018 2-day | **0.779 / 0.460** / 0.01 | 0.745 / 0.425 / 0.01 | 0.593 / 0.320 / 0.01 | 0.434 / 0.256 / 0.00 | 0.568 / 0.391 / 0.00 | – |
 
-On the two comparison datasets the proposed model beats Isolation Forest and the autoencoder's reconstruction score
+On CSE-CIC-IDS2018 and UNSW-NB15 the proposed model beats Isolation Forest and the autoencoder's reconstruction score
 (by a wide margin on CSE-CIC-IDS2018, by less on UNSW-NB15), and it ties or narrowly beats the autoencoder once both use
 the same scorer. The supervised RF wins on UNSW-NB15 and the CSE-CIC-IDS2018 3-day
 split, but there it has seen the same attack types in training, so it isn't a zero-day setting. With its fixed
 threshold it flags almost nothing on unseen attacks.
 
-Keep in mind that **neither comparison dataset has separate telemetry sources.** Their "modalities" are four views of
+Keep in mind that **neither CSE-CIC-IDS2018 nor UNSW-NB15 has separate telemetry sources.** Their "modalities" are four views of
 one CICFlowMeter or Argus record, so the multi-modal claim (RQ2) rests on CIC-IDS2017.
 
 How the scoring was chosen: I designed the latent-kNN scoring on CSE-CIC-IDS2018 (2-day) and UNSW-NB15, before
@@ -581,6 +628,17 @@ Some highlights:
 - For `ssl_mm_experts` on CIC-IDS2017 P1, the SHAP deletion drop is 0.32 against −0.12 for random features. Each alert
   also shows which source drove it, e.g. "http 90%" for a DDoS flow.
 
+- **The E9 ensemble (`ssl_mm_ensemble`) needed a fix to be explainable.** Its score is rank-based and saturates at about
+  10.85 for strong alerts, where no single feature can move it. Explained as is, SHAP failed the deletion test (−0.15 vs
+  −0.22 for random features). `explain` therefore explains an unsaturated version of the same score
+  (`TailEnsemble.transform(extrapolate=True)`): above each level's benign 99th percentile, the empirical tail is replaced
+  by an exponential tail fitted to those top scores. Below that point it equals the detector's score, so the alerts
+  don't change. With it, **SHAP passes** (deletion drop +0.10 vs −0.12 random; stability 0.63). I set this criterion
+  before the run. **Native attribution and LIME still don't pass** (−0.23 vs −0.21, −0.18 vs −0.20). Resetting features to
+  the benign median makes the ensemble *more* suspicious even for random features: a mix of median values is itself an
+  unusual flow for some of its 15 member models. So for the ensemble, analyst reports should rely on SHAP only. The
+  explanations are weaker than for `ssl_mm_experts` (SHAP +0.32), which is the price of the better detection.
+
 These checks are automatic only. Whether the explanations actually help an analyst still needs a human review with
 the Terma supervisor.
 
@@ -604,14 +662,16 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/API.md](docs/API.md). Som
 - The service hasn't been tested on customer data yet.
 - Bundles from the `*context*` configs can't be served, because the service doesn't compute context features for
   single incoming flows.
-- `ssl_mm_experts` can't be exported as a bundle yet.
+- **No CIC-IDS2017 model can be served yet**, including `ssl_mm_ensemble`. The service reads CICFlowMeter-style flow
+  columns, while the CIC-IDS2017 models take Suricata event features. Adding Suricata (eve.json) input to the service
+  is the same piece of work as the Terma adapter.
 
 ---
 
 ## 11. Deviations from the proposal and known limits
 
 - **Multi-modal telemetry is shown on CIC-IDS2017 only.** It is the only dataset with real, separate sources (Suricata
-  flow, TCP, DNS, HTTP and session events). The two comparison datasets have one flow record per connection. The
+  flow, TCP, DNS, HTTP and session events). CSE-CIC-IDS2018 and UNSW-NB15 have one flow record per connection. The
   adapter interface (`ids_pipeline/adapters/`) is where Terma's Suricata or Zeek data would plug in.
 - **The SSL model ties simpler unsupervised models on CIC-IDS2017** (H1 and H7 not supported), and its
   fixed-threshold recall depends strongly on the seed. The post-hoc `ssl_mm_experts` (section 7.4) is not a claim
@@ -648,4 +708,5 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/API.md](docs/API.md). Som
 | Suricata on one day takes many hours instead of ~1 h | Windows went to sleep and Suricata paused with it. Run `logs/keep_awake.ps1` during long jobs. |
 | A long run stops when the terminal, VS Code or the Claude session closes | Start long jobs through WMI (`Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine=...}`). |
 | `python` in Git Bash is Python 3.13 / packages missing | Git Bash finds the base Anaconda python. Use the `mlenv` interpreter explicitly (`export PY=.../envs/mlenv/python.exe`). |
-| `explain --method ssl_mm_role_knn` fails with `FileNotFoundError ... ssl_mm_role_knn.pkl` | `explain` works on the trained network, not on a scoring variant. Use `--method ssl_mm_role` (the default) or `ssl_mm_experts`. |
+| `explain --method ssl_mm_role_knn` fails with `FileNotFoundError ... ssl_mm_role_knn.pkl` | `explain` works on the trained network, not on a scoring variant. Use `--method ssl_mm_role` (the default), `ssl_mm_experts` or `ssl_mm_ensemble`. |
+| `[ssl_mm_ensemble] skipped: missing ...` | The other seeds haven't been trained. Run `scripts\multiseed.py --config config_cic2017_monday.yaml --seeds 1 2` first. |

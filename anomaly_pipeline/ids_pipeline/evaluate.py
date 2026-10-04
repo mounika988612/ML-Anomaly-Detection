@@ -12,7 +12,7 @@ from .scoring import min_p, tail_score  # noqa: F401  (tail_score re-exported)
 from .utils import get_logger
 
 log = get_logger()
-MAIN = ["ssl_mm_twoview_knn", "ae_twoview_knnrole", "ssl_mm_experts", "ssl_mm_role_knn", "ssl_mm_global_knn", "ae_concat_knn", "ae_concat_knnrole", "ssl_mm_role", "ssl_mm_global", "ae_concat",
+MAIN = ["ssl_mm_twoview_knn", "ae_twoview_knnrole", "ssl_mm_ensemble", "ssl_mm_experts", "ssl_mm_role_knn", "ssl_mm_global_knn", "ae_concat_knn", "ae_concat_knnrole", "ssl_mm_role", "ssl_mm_global", "ae_concat",
         "iforest", "pca_recon", "rf_supervised"]
 ABLATION = ["ssl_mm_role_knn", "ssl_mm_global_knn", "ssl_no_contrastive_knn", "ssl_mm_role", "ssl_mm_global", "ssl_no_contrastive",
             "ssl_only_volume_timing", "ssl_only_packet_size", "ssl_only_protocol_flags", "ssl_only_bulk_subflow"]
@@ -131,7 +131,7 @@ def collect_scores(cfg, adapt):
                              lat=sum(scores[p]["lat"] for p in parts))
     if "suricata_signature" in scores:                   # hybrid: Suricata signature alert OR ML alert
         sig = scores["suricata_signature"]["s"]
-        for base in ("ssl_mm_experts", "ssl_mm_role_knn", "ssl_mm_global_knn", "ae_concat_knn", "ssl_mm_role", "ssl_mm_global", "ae_concat"):
+        for base in ("ssl_mm_ensemble", "ssl_mm_experts", "ssl_mm_role_knn", "ssl_mm_global_knn", "ae_concat_knn", "ssl_mm_role", "ssl_mm_global", "ae_concat"):
             if base in scores:
                 m = scores[base]
                 scores[f"hybrid_sig_or_{base}"] = dict(s=m["s"] + 1e6 * sig, thr=m["thr"], lat=m["lat"],

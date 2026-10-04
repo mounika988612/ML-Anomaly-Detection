@@ -23,28 +23,82 @@ import torch
 from .analyst_report import Baseline, PcapContext, Suricata2017Context, build_report, raw_features, raw_roles
 from .data import _adapter, check_aligned, load_feature_space, load_split
 from .features import ROLE_NAMES
-from .models import MLPAutoencoder, MultiModalSSL, batched_components
-from .scoring import tail_score
+from .models import MLPAutoencoder, MultiModalSSL, batched_components, batched_embed
+from .scoring import Calibrator, LatentKNN, tail_score, tail_score_ext
+from .train import seed_results_dir
 from .utils import get_logger
 
 log = get_logger()
 METHOD = "ssl_mm_role"
 
 
-def _load(cfg, method=METHOD):
-    meta = pickle.load(open(cfg["paths"]["work_dir"] / "models" / f"{method}.pkl", "rb"))
+def _load(cfg, method=METHOD, models_dir=None):
+    d = models_dir or cfg["paths"]["work_dir"] / "models"
+    meta = pickle.load(open(d / f"{method}.pkl", "rb"))
     cls = MLPAutoencoder if meta["spec"]["kind"] == "ae" else MultiModalSSL
     model = cls(meta["slices"], cfg["model"], meta["spec"]["use_role"])
-    model.load_state_dict(torch.load(cfg["paths"]["work_dir"] / "models" / f"{method}.pt"))
+    model.load_state_dict(torch.load(d / f"{method}.pt"))
     model.eval()
     return model, meta
 
 
-def _scorer(cfg, method, d):
+def _seed_models_dir(cfg, seed):
+    """models of one seed: the config's own seed in work_dir/models, extra seeds in `<results_dir>_seed<N>/models` (multiseed.py)"""
+    return cfg["paths"]["work_dir"] / "models" if seed == cfg["data"]["seed"] else seed_results_dir(cfg, seed) / "models"
+
+
+def _ensemble_scorer(cfg, meta, d, tr, va):
+    """`ssl_mm_ensemble`: explains the unsaturated score (TailEnsemble.transform(extrapolate=True), equal to the detector's
+    score wherever no level exceeds its benign 99th percentile). Rebuilds, per seed, the role-aware latent-kNN score of `ssl_mm_role` (the kNN reference is refitted
+    exactly as in train.train_neural: same seed, same benign training rows) and the five experts, then applies the saved
+    TailEnsemble. Native attribution: per seed the experts' per-feature errors weighted by their tail evidence, seed mean."""
+    scfg, fusion, members = cfg["scoring"], meta["fusion"], []
+    zero = lambda n: np.zeros(n, np.float32)
+    for seed in meta["spec"]["seeds"]:
+        md = _seed_models_dir(cfg, seed)
+        model, m = _load(cfg, "ssl_mm_role", md)
+        idx = np.asarray(m["idx"])
+        knn = LatentKNN(scfg.get("knn_k", 5), scfg.get("knn_ref", 10000), scfg.get("knn_ref_role", 5000), True,
+                        scfg["min_role_samples"], seed).fit(batched_embed(model, tr["X"][:, idx], tr["role"]), tr["role"])
+        vd = knn.distances(batched_embed(model, va["X"][:, idx], va["role"]), va["role"])
+        kc = Calibrator(0.0, False, scfg["min_role_samples"], scfg.get("min_scale_ratio", 0.5)).fit({"rec": vd, "xmod": zero(len(vd))}, va["role"])
+        experts = {p: _load(cfg, p, md) for p in meta["spec"]["parts"][1:]}
+        members.append((model, idx, knn, kc, experts))
+
+    def raw(X, r):
+        X = np.asarray(X, np.float32)
+        out = []
+        for model, idx, knn, kc, experts in members:
+            dd = knn.distances(batched_embed(model, X[:, idx], r), r)
+            m = {"ssl_mm_role_knn": kc.transform({"rec": dd, "xmod": zero(len(dd))}, r)}
+            m.update({p: em["calibrator"].transform(batched_components(emod, X[:, np.asarray(em["idx"])], r), r)
+                      for p, (emod, em) in experts.items()})
+            out.append(m)
+        return out
+
+    def score(X, r):
+        # unsaturated version of the detector score: strong alerts sit at the empirical ceiling (~10.85), where no single
+        # feature can move the score, so attributions of the saturated score failed the deletion test (README section 9)
+        return fusion.transform(raw(X, r), extrapolate=True)
+
+    def native(x, role):
+        out, r = np.zeros(d), np.array([role], np.int8)
+        for (_, _, _, _, experts), m, ref in zip(members, raw(x[None], r), fusion.refs):
+            for p, (emod, em) in experts.items():
+                idx = np.asarray(em["idx"])
+                fe = batched_components(emod, x[None][:, idx], r, keep_feat=True)["feat_err"][0]
+                out[idx] += fe / max(fe.sum(), 1e-12) * float(tail_score_ext(m[p], ref[p], presorted=True)[0]) / len(members)
+        return out
+    return score, native, meta["thr"]
+
+
+def _scorer(cfg, method, d, tr=None, va=None):
     """-> score(X, roles) on the full feature matrix, native(x, role) -> per-feature attribution over all d features, threshold.
     `ssl_mm_experts` (train.fuse_experts) is the min-p fusion of the single-modality experts; its native attribution is each
     expert's per-feature reconstruction error, rescaled so an expert's features share that expert's tail evidence (-log p)."""
     meta = pickle.load(open(cfg["paths"]["work_dir"] / "models" / f"{method}.pkl", "rb"))
+    if meta["spec"]["kind"] == "ensemble":
+        return _ensemble_scorer(cfg, meta, d, tr, va)
     if meta["spec"]["kind"] != "experts":
         model, meta = _load(cfg, method)
         calib, idx = meta["calibrator"], np.asarray(meta["idx"])
@@ -149,8 +203,8 @@ def run_explain(cfg):
     rs = np.random.RandomState(cfg["data"]["seed"])
     fs = load_feature_space(cfg)
     names, mods, d = fs.names, fs.modality_of, len(fs.names)
-    score, native_attr, thr = _scorer(cfg, method, d)
     tr, va = load_split(cfg, "train"), load_split(cfg, "val")
+    score, native_attr, thr = _scorer(cfg, method, d, tr, va)
     sc = np.load(res / "scores" / f"{method}.npz")
 
     def make_f(role):

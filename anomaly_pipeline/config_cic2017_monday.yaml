@@ -1,4 +1,4 @@
-# PRIMARY experiment (default config of run.py). CIC-IDS2017 rebuilt from the official pcaps with Suricata; protocol P1 (E7, PREREGISTRATION.md): train on Monday (benign only), test Tue-Fri
+# Default experiment of run.py. CIC-IDS2017 rebuilt from the official pcaps with Suricata; protocol P1 (E7, PREREGISTRATION.md): train on Monday (benign only), test Tue-Fri
 paths:
   raw_dir: "${IDS_DATA_DIR:-../dataset/CICIDS2017}"        # official pcaps (read by scripts/cic2017_suricata.sh, not by the pipeline)
   work_dir: "${IDS_WORK_DIR:-work_cic2017_monday}"
