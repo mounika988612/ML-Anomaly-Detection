@@ -650,8 +650,33 @@ median values is itself an unusual flow for some of its 15 member models. For th
 therefore use SHAP only. Its explanations are weaker than those of `ssl_mm_experts` (SHAP +0.32); that's the cost of
 the better detection.
 
-All of these checks are automatic. Whether the explanations actually help an analyst still has to be judged by a person,
-which I plan to do with my supervisor at Terma.
+To test whether this failure came from the explanations or from the test, I pre-registered a wider set of checks as E10
+(`results_comparison/PREREGISTRATION.md`) and ran them with `python scripts/xai_eval.py` on about 200 alerts per model.
+The report is in `results_cic2017_monday/xai_eval/E10_report.md`. The new checks are:
+
+- deletion with realistic replacement values, taken from the nearest normal flow of the same role;
+- exact Shapley values per telemetry source;
+- the number of features that have to change before an alert drops below the threshold;
+- whether the top source matches what the attack should look like (written down before the run);
+- a model-randomisation sanity check;
+- whether a simple classifier can recover the attack type from the explanation alone.
+
+What came out:
+
+- SHAP and native attribution pass every check on the ensemble and on `ssl_mm_experts`. With realistic replacement,
+  native attribution and LIME pass on the ensemble as well, so the earlier failure came from the median reset. That
+  change to the test was made after I had seen the failure, so I report both versions.
+- LIME fails the randomisation check on every model: its attributions hardly change when the network weights are
+  random. It also needs 64–68 features to bring an alert below the threshold, so I keep it only as a cross-check.
+- The per-source Shapley values are faithful, but they mostly reflect which source deviates in the input. They work as a
+  summary for analysts, not as evidence about the model.
+- From SHAP alone, the attack type can be recovered with macro-F1 0.90, against 0.21 from the score alone.
+- No explanation separates attacks from false alarms on the ensemble better than the pre-registered bar.
+
+All of these checks are automatic. Whether the explanations actually help an analyst still has to be judged by people.
+`docs/analyst_study/` holds a ready study (protocol, consent form, answer sheet, questionnaire). The 20 alert cards are
+blinded, and each alert is shown with and without its explanation across two forms. `python scripts/analyst_study_pack.py`
+builds the cards (`build`) and scores the answers (`score`). I plan to run it with analysts at Terma.
 
 ---
 

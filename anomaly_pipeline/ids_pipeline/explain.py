@@ -80,6 +80,7 @@ def _ensemble_scorer(cfg, meta, d, tr, va):
         # unsaturated version of the detector score: strong alerts sit at the empirical ceiling (~10.85), where no single
         # feature can move the score, so attributions of the saturated score failed the deletion test (README section 9)
         return fusion.transform(raw(X, r), extrapolate=True)
+    score.raw, score.fusion = raw, fusion       # for scripts/xai_eval.py (refits the fusion of randomised models)
 
     def native(x, role):
         out, r = np.zeros(d), np.array([role], np.int8)
@@ -122,6 +123,7 @@ def _scorer(cfg, method, d, tr=None, va=None):
 
     def score(X, r):
         return np.max(list(expert_tail(X, r).values()), 0).astype(np.float32)
+    score.experts, score.refs = experts, refs   # for scripts/xai_eval.py (refits the refs of randomised models)
 
     def native(x, role):
         out, r = np.zeros(d), np.array([role], np.int8)
