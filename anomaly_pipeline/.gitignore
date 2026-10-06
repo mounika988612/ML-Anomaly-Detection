@@ -24,3 +24,6 @@ models/
 build/
 dist/
 .ruff_cache/
+
+# reproduction snapshots (make reproduce-final)
+reproduce_runs/

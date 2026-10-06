@@ -366,3 +366,166 @@ so only R and C are evaluable for it. Means with 95% bootstrap CIs over alerts; 
   the nearest normal flow of the same role in the analyst report.
 - Explanations recover the attack type almost as well as the raw features (SHAP 0.90 vs 0.98), so they condense rather than add
   information; their value for a person is the condensation, which only the analyst study (`docs/analyst_study/`) can test.
+
+## X2: leakage and data-integrity audit (written 2026-10-05, POST HOC: after E1-E10 test results were seen; descriptive)
+Why: the protocol was frozen (E7) without a systematic leakage audit; this audit checks after the fact whether any reported number
+could be inflated by leakage. It changes no reported number; if it finds leakage that affects a result, that is reported as a
+limitation next to the result, not fixed silently. Script: `scripts/leakage_audit.py`; output `results_comparison/leakage_audit/`;
+write-up `docs/LEAKAGE_AUDIT.md`. Protocols: CIC-IDS2017 P1 (`config_cic2017_monday.yaml`), CSE-CIC-IDS2018 3-day clean
+(`config_multiday_context_clean.yaml`), UNSW-NB15 (`config_unsw.yaml`). Splits are rebuilt in memory with the pipeline's own loader,
+cleaning and feature space (for P1 checked to be identical to the cached `processed/*.npz`), so every check is on what the models see.
+
+| # | check | definition |
+|---|---|---|
+| L1 | split integrity | train / validation / test time ranges; train and test days disjoint; validation strictly after training rows of each day |
+| L2 | preprocessing fit | feature-space statistics refitted on the training benign rows only equal the shipped ones (P1) |
+| L3 | exact duplicates across splits | share of test rows (per label) whose model input (standardised features + role) also occurs in the benign training period (train + validation) |
+| L4 | near duplicates | Euclidean distance (standardised features) from test rows (sample of up to 5,000 per label) to the nearest of 200,000 benign training rows; share below 0.1 and median |
+| L5 | identifier / label leakage | no model feature is an identifier (IP, port number, Flow ID, timestamp, row id) or derived from labels or IDS alerts (`sig`, `alerted`, `class`, `truth`, `Label`) |
+| L6 | identifier shortcuts | in-sample target-encoding ROC-AUC (attack vs benign, test period) of identifiers NOT used as features: src/dst IP, Flow ID (P1), dst port, minute of day, role, UNSW `id`; shows how strong a shortcut would be |
+| L7 | session / flow overlap | P1: test flows whose Flow ID (5-tuple) occurs in the training day |
+| L8 | single-feature artefacts | per model feature, test-period ROC-AUC (max(AUC, 1-AUC)) attack vs benign, pooled and per attack type; >= 0.95 flagged |
+| L9 | future information | code review of the temporal-context features and of the threshold / adaptation procedures for use of later data |
+
+## E11: fair hyperparameter tuning of the baselines (written 2026-10-05, after E7-E10 test results were seen, before any E11 run)
+Why: only the SSL model had a hyperparameter search (label-free, `scripts/hparam_search.py`, on CSE-CIC-IDS2018); the baselines ran
+with defaults. A comparison is only fair if every method gets the same tuning budget and criterion. Honest limit: the test results of
+the default configurations are known, so E11 is a robustness check of H1 / H6 / H7, not a fresh test; E7 / E9 numbers stay as reported.
+Script: `scripts/e11_tuning.py`; output `results_comparison/E11/`.
+
+Unsupervised methods, protocol P1 (`config_cic2017_monday.yaml`). Selection criterion, identical for every method and identical to
+`hparam_search.py`: mean ROC-AUC of 4,000 benign validation flows (seed 1) against two synthetic-anomaly sets built from them
+(modality shuffle, feature extreme); model seed 0. No attack label is used. If the best candidate is within 0.002 of the default,
+the default is kept (the rule applied to the SSL search).
+
+| method | grid |
+|---|---|
+| `ssl_mm_role` (scored by `ssl_mm_role_knn`) | hidden {64, 128, 256} x latent_dim {16, 32, 64} (9) |
+| `ae_concat` (reconstruction) and `ae_concat_knnrole` | hidden {64, 128, 256} x latent_dim {16, 32, 64} (9; each score selected separately) |
+| kNN scorer of `ssl_mm_role_knn` and `ae_concat_knnrole` | k {1, 5, 10, 20} on the selected encoder |
+| `iforest` | n_estimators {100, 200, 400} x max_samples {256, 1024, 4096} x max_features {0.5, 1.0} (18) |
+| `pca_recon` | explained variance {0.80, 0.90, 0.95, 0.99} (4) |
+
+Supervised `rf_supervised`, on the three protocols where it is reported: CIC-IDS2017 P2 (`config_suricata2017_rebuilt.yaml`), UNSW-NB15,
+CSE-CIC-IDS2018 3-day clean. Grid n_estimators {100, 300} x max_depth {10, 20, None} x min_samples_leaf {1, 2, 5} (18). Validation:
+the latest 20% (by time) of the labelled training-period pool (`sup`); UNSW-NB15 has no time, so a stratified random 20% (seed 42).
+Criterion: PR-AUC on that validation. Only training-period labels are used; the selected setting is refitted on the whole pool.
+
+Evaluation: the selected settings are retrained with seeds 42, 1, 2 and scored like E7 (fixed threshold = 99th percentile of benign
+validation scores; paired ROC-AUC differences with 95% block-bootstrap CIs as in `scripts/clean_eval.py`).
+Decision rules, fixed now: H1 (proposed vs best unsupervised baseline) and H7 (proposed vs AE with the same role-kNN scorer) are re-read
+with the tuned versions of BOTH sides; an outcome changes only if the CI of the paired difference changes sign class (includes 0 vs not).
+H6 (P2) is re-read with the tuned RF. All three outcomes are reported whatever they are.
+
+## X3: representation analysis (written 2026-10-05, POST HOC; descriptive)
+Why does (or does not) the SSL latent space help? P1, saved models of seeds 42, 1, 2 (no retraining): `ssl_mm_role`, `ssl_no_contrastive`,
+`ssl_mm_global`, `ae_concat`, and the standardised input features as reference. Sample: 20,000 benign training-period flows and up to
+2,000 test flows per label (seed 0). Script `scripts/representation_analysis.py`; output `results_comparison/representation/`.
+Measures: (a) neighbourhood purity: share of the 10 nearest test neighbours with the same label; (b) benign vs attack separation:
+ROC-AUC of the distance to the 5 nearest benign training embeddings (global and same-role), and linear-probe ROC-AUC (logistic regression,
+5-fold CV) as an upper bound of linear separability; (c) role structure: neighbourhood role purity and per-role separation AUC;
+(d) stability across seeds: linear CKA and the overlap (Jaccard) of the 10-nearest-neighbour sets of the same flows; (e) effective
+dimensionality (participation ratio of the embedding covariance); (f) 2-D t-SNE figure of the sample.
+
+## X4: error and failure analysis (written 2026-10-05, POST HOC; descriptive)
+P1, saved score files, fixed threshold, seeds 42 / 1 / 2: `ssl_mm_role_knn`, `ssl_mm_ensemble`, `ae_concat_knnrole`, `iforest`,
+`suricata_signature`. Script `scripts/error_analysis.py`; output `results_comparison/error_analysis/`. Breakdowns of false negatives
+(per attack type, role, protocol, flow size in packets, flows identical to benign training flows from X2) and false positives (per role,
+destination port, hour, flow size, protocol); attacks missed by every method vs caught by at least one (complementarity); seed
+disagreement (flows whose decision flips between seeds) and their distance to the threshold; the features that deviate most (median |z|)
+in false positives and false negatives.
+
+### Outcomes of X2 (written 2026-10-05, after the single run)
+Write-up `docs/LEAKAGE_AUDIT.md`; tables `results_comparison/leakage_audit/`. No leakage that could inflate the results of the unsupervised
+methods: splits chronological (UNSW: official, no time), preprocessing fitted on training rows only (P1 rebuild byte-identical to the
+shipped split), no identifier or label-derived feature, no attack 5-tuple of Tue-Fri seen on Monday (except 2.5% of Infiltration - Portscan),
+the only future information (10-s port bucket of the CSE-CIC-IDS2018 context) changes per-day AUCs by <= 0.013. Findings that qualify results:
+(1) UNSW-NB15: 15-48% of the DoS / Reconnaissance / Analysis / Exploits / Generic test flows are identical to rows of the RF's labelled
+training pool, so the RF's 0.985 ROC-AUC is partly memorisation; (2) CIC-IDS2017: XSS 95%, Web Brute Force 89%, Slowhttptest 66%, Slowloris
+42% of the attack-labelled flows are identical to benign Monday flows and Portscan 50% near-identical (time-window labels), a recall ceiling
+for every flow-level detector (deflates, cannot inflate); (3) CIC-IDS2017: 43-46% of benign test flows are identical to benign training flows.
+
+### Outcomes of X3 and X4 (written 2026-10-05, after the single runs)
+Write-up `docs/REPRESENTATION_AND_ERRORS.md`. X3: the SSL latent space is organised by service role (neighbour role purity 0.994 vs 0.940);
+that gives it a better *global* kNN separation (0.847 vs input 0.799, AE 0.811), but with a same-role search the AE is as good (0.863 vs
+0.857), the mechanism behind H5 supported / H7 not supported. The contrastive term leaves every measure unchanged; latent spaces are
+low-rank (participation ratio 2.6-3.4 of 32); 10-NN sets overlap only 67-74% across seeds; the linear probe on the raw input (0.988) beats
+every latent space, so the limit is the unsupervised scoring, not the information. X4: misses fall into (a) label-artefact flows near-identical
+to benign traffic (17.9% of Tue-Fri attack flows), (b) well-ranked attacks that stay below the 1% benign tail (SSH-Patator, DoS Hulk), and (c) a
+threshold at the edge of the DDoS / Portscan / FTP-Patator clusters (seed flips: Portscan recall 0.011 / 0.015 / 0.814). 64-77% of the
+`ssl_mm_role_knn` false alarms (seeds 42, 1) are flows Suricata flushed at the end of each capture (`flow_reason = shutdown`, 3.2% of benign
+flows), a capture artefact; they stay in every reported number.
+
+### Outcomes of E11 (written 2026-10-05, after the single run of each stage; nothing was changed after seeing results)
+Report `results_comparison/E11/E11_report.md`; scores `results_e11_*`. Selected (label-free, P1): SSL hidden 256 / latent 64 / k 1; AE+role-kNN
+default encoder / k 1; AE recon hidden 256; iForest 100 trees / 4,096 samples / 0.5 features (criterion 0.729 -> 0.807); PCA 0.99. RF: default
+kept on P2 (validation slice held only SSH-Patator, every candidate PR-AUC ~0.02) and UNSW (tie); tuned on CSE-CIC-IDS2018 (100 / 20 / 1).
+One execution fix during the run: the final stage crashed on a missing temporary folder (not created before use) after seed 42's SSL and AE
+models were trained; the stage was made resumable and continued, with no setting changed.
+P1, seeds 42 / 1 / 2, fixed threshold, tuned vs tuned (SSL - method, ROC-AUC): iForest -0.020 [-0.051, -0.009]; AE +0.025 [-0.011, +0.060];
+PCA +0.014 [-0.012, +0.028]; AE + role-kNN +0.018 [-0.013, +0.057].
+| H | E7 | E11 | changed |
+|---|---|---|---|
+| H1 | not supported | **not supported; tuned iForest now significantly better on ROC-AUC (0.974 vs 0.953)** | CI class vs iForest: includes 0 -> below 0 |
+| H7 | not supported | not supported | no |
+| H6 | supported | supported (RF default kept): ROC-AUC 0.951 vs 0.612, recall 0.070 vs 0.004 | no |
+- Tuned SSL: ROC-AUC 0.945 -> 0.953, fixed-threshold recall 0.115 -> 0.434 (seed std 0.134) at FPR 0.5%; recall vs tuned iForest
+  +0.109 [+0.035, +0.174] at half its FPR. The advantage of the proposed model is its operating point and zero-day behaviour, not ranking.
+- CSE-CIC-IDS2018: tuned RF ROC-AUC 0.717 vs default 0.713, recall 0 in both; validation gain on the seen attack does not transfer.
+- The label-free criterion improved iForest and PCA on test, left AE + kNN unchanged and made AE reconstruction worse (-0.009).
+
+## E12: leave-one-attack-family-out evaluation of the supervised RF (written 2026-10-05, before any E12 run)
+Why: H6 shows the RF failing on unseen attacks in one split only (P2: FTP-Patator seen, everything else unseen). E12 holds out each attack
+family in turn, so the generalisation gap of a supervised detector is measured per family against the same RF when the family was seen,
+and against the label-free SSL model on identical test rows. This is an "unseen-attack protocol", not a claim about real zero-days.
+Script `scripts/e12_lofo.py`; output `results_comparison/E12/`.
+
+Data: CIC-IDS2017 P1 processed splits (feature space fitted on Monday benign, unchanged). Families (>= 500 flows): DoS (Hulk, GoldenEye,
+Slowloris, Slowhttptest), DDoS, Brute force (FTP-Patator, SSH-Patator), Web (Brute Force, XSS, SQL Injection), Scan (Portscan, Infiltration -
+Portscan), Botnet. Heartbleed (1 flow) and Infiltration (14) are never held out; they are training attacks of every model and not tested.
+For each held-out family F, flows of F are split per attack type at the median start time:
+- test rows = all Tue-Fri benign flows + the later half of F (other families' attacks are not tested);
+- `rf_unseen`: Monday benign (train split) + every attack flow of the other families (at most 50,000 per attack type, random, seeded);
+- `rf_seen`: the same plus the earlier half of F (an optimistic reference: the halves may share near-duplicates);
+- RF settings: the shipped `SupervisedRF` (100 trees, depth 20, leaf 2, balanced class weights; kept by E11 on P2 and UNSW).
+Thresholds: (i) 0.5 (as shipped) and (ii) calibrated, the 99th percentile of the RF's scores on Monday benign validation (the rule of every
+unsupervised method). SSL comparison: saved scores of the tuned E11 `ssl_mm_role_knn` (primary) and of the E7 default, with their own fixed
+thresholds, no retraining. Seeds 42, 1, 2 (RF seed and sampling seed; the SSL score of the same seed). Metrics per family: recall of F at both
+thresholds, ROC-AUC (F vs Tue-Fri benign), FPR. CIs: 10-minute blocks resampled within each test day, 500 resamples, seed-mean statistic.
+Decision rules, fixed now:
+- H8a (generalisation gap): ROC-AUC(`rf_seen`) - ROC-AUC(`rf_unseen`) has CI > 0 in at least 4 of the 6 families.
+- H8b (label-free model vs supervised on unseen families): recall(SSL tuned) - recall(`rf_unseen`, calibrated threshold) has CI > 0 in at
+  least 4 of the 6 families. The same difference in ROC-AUC is reported, not decided.
+Every outcome is reported.
+
+## E13: Zeek on CIC-IDS2017 as a second operational baseline (written 2026-10-05; Zeek was started on the Tue-Fri pcaps before this entry,
+## no Zeek output has been read)
+Why: Zeek was only run on one CSE-CIC-IDS2018 capture; on CIC-IDS2017 it was skipped for disk space (E7). E13 adds it on the P1 test days.
+Run: `zeek/zeek:9.0.0`, `zeek -C -r <Day>.pcap local protocols/ftp/detect-bruteforcing protocols/ssl/heartbleed misc/detect-traceroute` with
+`Site::local_nets = 192.168.10.0/24`, no network access (logs in `external/cic2017/<Day>/zeek/`). Zeek 9 has no scan detector. No tuning.
+Zeek alert = an entry in notice.log, except Zeek health notices (`CaptureLoss::*`, `PacketFilter::*`). Flow verdict on the P1 test rows
+(the Suricata flows): a flow is Zeek-detected if (a) a notice names the Zeek connection matched to it (notice `uid`; match = same 5-tuple in
+either direction, start times within 2 s), or (b) a notice without `uid` has a `src` that is one of the flow's two endpoints and the flow
+starts within 30 minutes of the notice. The same rule is applied to benign flows (false positives). Metrics, as for Suricata in E7:
+recall per attack type and overall, FPR, alerted benign flows per hour, notice types; plus Zeek OR Suricata and Zeek OR `ssl_mm_role_knn`
+(tuned E11, seed 42 and seed mean). Descriptive baseline: no hypothesis; reported whatever the result.
+
+### Outcomes of E12 (written 2026-10-05, after the run; nothing was changed after seeing results)
+Report `results_comparison/E12/E12_report.md`. Execution fix (statistics only, no change to models, data or rules): in the first run some
+bootstrap resamples contained no attack flow of a family (DDoS, Web, Botnet sit in few 10-minute blocks), which made AUC undefined (NaN CIs)
+and recall 0. Those resamples are now dropped for recall, FPR and AUC alike (`resamples_used`: 428-500 of 500); point estimates unchanged.
+| H | rule | outcome |
+|---|---|---|
+| H8a | AUC(rf_seen) - AUC(rf_unseen) CI > 0 in >= 4 / 6 families | **supported, 6 / 6** (Web +0.408, Scan +0.060, DoS +0.029, Botnet +0.021, Brute force +0.011, DDoS +0.005) |
+| H8b | recall(tuned SSL) - recall(rf_unseen, calibrated) CI > 0 in >= 4 / 6 | **not supported, 0 / 6** (Scan +0.470 [-0.206, +0.798], Botnet +0.102 [0.000, +0.149]; RF better on Brute force -0.223 [-0.330, -0.074] and DDoS -0.325) |
+- rf_unseen ranks unseen families well (AUC 0.93-0.995, Web 0.584) but its calibrated recall collapses for DoS 0.02, Web 0.00, Botnet 0.00,
+  Scan 0.19; it stays high where a similar family was seen (DDoS 0.988, Brute force 0.628). Qualifies H6: the P2 RF had seen one attack type.
+- Tuned SSL vs rf_unseen on AUC: RF better on DoS, DDoS, Web, Botnet (CI < 0); default SSL recall beats rf_unseen on Botnet (+0.295, CI > 0).
+
+### Outcomes of E13 (written 2026-10-05, after the run)
+Report `results_comparison/E13/E13_report.md`. Tue-Fri, 1,620,815 test flows: Zeek recall 0.007, FPR 2.87% (974 alerted benign flows/h) vs
+Suricata 0.005 / 0.28% / 93 per h. Zeek detects only FTP-Patator (0.497) and SSH-Patator (0.584), via one FTP::Bruteforcing and one
+SSH::Password_Guessing notice, plus the Heartbleed flow; no notice for DoS, DDoS, scans (Zeek 9 has no scan detector), web attacks or SQLi.
+All 31,880 SSL::Invalid_Server_Cert notices are on benign flows (94% "unable to get local issuer certificate", mostly public sites: likely a
+2025 root store checking 2017 chains, i.e. a replay artefact). Zeek OR tuned SSL: SSH-Patator recall 0.001 -> 0.584, FTP-Patator 0.66 -> 0.83,
+overall 0.434 -> 0.438 at FPR 0.53% -> 3.39%.

@@ -1,0 +1,469 @@
+file,feature,missing,infinite,negative,zero_fraction,n_unique,constant
+Friday-02-03-2018.csv,Dst Port,0,0,0,0.0128,37304,False
+Friday-02-03-2018.csv,Protocol,0,0,0,0.0128,3,False
+Friday-02-03-2018.csv,Flow Duration,0,0,0,0.0039,442344,False
+Friday-02-03-2018.csv,Tot Fwd Pkts,0,0,0,0.0,754,False
+Friday-02-03-2018.csv,Tot Bwd Pkts,0,0,0,0.3028,1064,False
+Friday-02-03-2018.csv,TotLen Fwd Pkts,0,0,0,0.3205,6266,False
+Friday-02-03-2018.csv,TotLen Bwd Pkts,0,0,0,0.3673,18066,False
+Friday-02-03-2018.csv,Fwd Pkt Len Max,0,0,0,0.3205,1424,False
+Friday-02-03-2018.csv,Fwd Pkt Len Min,0,0,0,0.8029,184,False
+Friday-02-03-2018.csv,Fwd Pkt Len Mean,0,0,0,0.3205,20086,False
+Friday-02-03-2018.csv,Fwd Pkt Len Std,0,0,0,0.5145,33062,False
+Friday-02-03-2018.csv,Bwd Pkt Len Max,0,0,0,0.3673,993,False
+Friday-02-03-2018.csv,Bwd Pkt Len Min,0,0,0,0.8093,287,False
+Friday-02-03-2018.csv,Bwd Pkt Len Mean,0,0,0,0.3673,29443,False
+Friday-02-03-2018.csv,Bwd Pkt Len Std,0,0,0,0.5553,34946,False
+Friday-02-03-2018.csv,Flow Byts/s,2558,1492,0,0.3169,458104,False
+Friday-02-03-2018.csv,Flow Pkts/s,0,4050,0,0.0,455755,False
+Friday-02-03-2018.csv,Flow IAT Mean,0,0,0,0.0039,400220,False
+Friday-02-03-2018.csv,Flow IAT Std,0,0,0,0.4454,524747,False
+Friday-02-03-2018.csv,Flow IAT Max,0,0,0,0.0039,195722,False
+Friday-02-03-2018.csv,Flow IAT Min,0,0,0,0.0538,44058,False
+Friday-02-03-2018.csv,Fwd IAT Tot,0,0,0,0.1811,280941,False
+Friday-02-03-2018.csv,Fwd IAT Mean,0,0,0,0.1811,351690,False
+Friday-02-03-2018.csv,Fwd IAT Std,0,0,0,0.4927,314718,False
+Friday-02-03-2018.csv,Fwd IAT Max,0,0,0,0.1811,253282,False
+Friday-02-03-2018.csv,Fwd IAT Min,0,0,0,0.1881,76576,False
+Friday-02-03-2018.csv,Bwd IAT Tot,0,0,0,0.5139,251488,False
+Friday-02-03-2018.csv,Bwd IAT Mean,0,0,0,0.5139,316792,False
+Friday-02-03-2018.csv,Bwd IAT Std,0,0,0,0.5558,427831,False
+Friday-02-03-2018.csv,Bwd IAT Max,0,0,0,0.5139,153810,False
+Friday-02-03-2018.csv,Bwd IAT Min,0,0,0,0.5545,135436,False
+Friday-02-03-2018.csv,Fwd PSH Flags,0,0,0,0.9696,2,False
+Friday-02-03-2018.csv,Bwd PSH Flags,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Fwd URG Flags,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Bwd URG Flags,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Fwd Header Len,0,0,0,0.0128,1419,False
+Friday-02-03-2018.csv,Bwd Header Len,0,0,0,0.3037,1976,False
+Friday-02-03-2018.csv,Fwd Pkts/s,0,0,0,0.0039,453048,False
+Friday-02-03-2018.csv,Bwd Pkts/s,0,0,0,0.303,381426,False
+Friday-02-03-2018.csv,Pkt Len Min,0,0,0,0.8047,95,False
+Friday-02-03-2018.csv,Pkt Len Max,0,0,0,0.3193,1186,False
+Friday-02-03-2018.csv,Pkt Len Mean,0,0,0,0.3193,43397,False
+Friday-02-03-2018.csv,Pkt Len Std,0,0,0,0.3284,51151,False
+Friday-02-03-2018.csv,Pkt Len Var,0,0,0,0.3284,51151,False
+Friday-02-03-2018.csv,FIN Flag Cnt,0,0,0,0.9963,2,False
+Friday-02-03-2018.csv,SYN Flag Cnt,0,0,0,0.9696,2,False
+Friday-02-03-2018.csv,RST Flag Cnt,0,0,0,0.7356,2,False
+Friday-02-03-2018.csv,PSH Flag Cnt,0,0,0,0.5429,2,False
+Friday-02-03-2018.csv,ACK Flag Cnt,0,0,0,0.6655,2,False
+Friday-02-03-2018.csv,URG Flag Cnt,0,0,0,0.9696,2,False
+Friday-02-03-2018.csv,CWE Flag Count,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,ECE Flag Cnt,0,0,0,0.7356,2,False
+Friday-02-03-2018.csv,Down/Up Ratio,0,0,0,0.5467,72,False
+Friday-02-03-2018.csv,Pkt Size Avg,0,0,0,0.3193,43073,False
+Friday-02-03-2018.csv,Fwd Seg Size Avg,0,0,0,0.3205,20086,False
+Friday-02-03-2018.csv,Bwd Seg Size Avg,0,0,0,0.3673,29443,False
+Friday-02-03-2018.csv,Fwd Byts/b Avg,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Fwd Pkts/b Avg,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Fwd Blk Rate Avg,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Bwd Byts/b Avg,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Bwd Pkts/b Avg,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Bwd Blk Rate Avg,0,0,0,1.0,1,True
+Friday-02-03-2018.csv,Subflow Fwd Pkts,0,0,0,0.0,754,False
+Friday-02-03-2018.csv,Subflow Fwd Byts,0,0,0,0.3205,6266,False
+Friday-02-03-2018.csv,Subflow Bwd Pkts,0,0,0,0.3028,1064,False
+Friday-02-03-2018.csv,Subflow Bwd Byts,0,0,0,0.3673,18068,False
+Friday-02-03-2018.csv,Init Fwd Win Byts,0,0,216083,0.0037,3842,False
+Friday-02-03-2018.csv,Init Bwd Win Byts,0,0,514380,0.0302,4727,False
+Friday-02-03-2018.csv,Fwd Act Data Pkts,0,0,0,0.4812,278,False
+Friday-02-03-2018.csv,Fwd Seg Size Min,0,0,0,0.0128,9,False
+Friday-02-03-2018.csv,Active Mean,0,0,0,0.9274,72650,False
+Friday-02-03-2018.csv,Active Std,0,0,0,0.9447,56255,False
+Friday-02-03-2018.csv,Active Max,0,0,0,0.9274,70259,False
+Friday-02-03-2018.csv,Active Min,0,0,0,0.9274,43755,False
+Friday-02-03-2018.csv,Idle Mean,0,0,0,0.889,32540,False
+Friday-02-03-2018.csv,Idle Std,0,0,0,0.9363,57966,False
+Friday-02-03-2018.csv,Idle Max,0,0,0,0.889,11321,False
+Friday-02-03-2018.csv,Idle Min,0,0,0,0.889,36883,False
+Thursday-01-03-2018.csv,Dst Port,0,0,0,0.0216,16149,False
+Thursday-01-03-2018.csv,Protocol,0,0,0,0.0216,3,False
+Thursday-01-03-2018.csv,Flow Duration,0,0,0,0.0088,153887,False
+Thursday-01-03-2018.csv,Tot Fwd Pkts,0,0,0,0.0,328,False
+Thursday-01-03-2018.csv,Tot Bwd Pkts,0,0,0,0.1508,408,False
+Thursday-01-03-2018.csv,TotLen Fwd Pkts,0,0,0,0.3065,3953,False
+Thursday-01-03-2018.csv,TotLen Bwd Pkts,0,0,0,0.3836,8805,False
+Thursday-01-03-2018.csv,Fwd Pkt Len Max,0,0,0,0.3065,1340,False
+Thursday-01-03-2018.csv,Fwd Pkt Len Min,0,0,0,0.6615,126,False
+Thursday-01-03-2018.csv,Fwd Pkt Len Mean,0,0,0,0.3065,10070,False
+Thursday-01-03-2018.csv,Fwd Pkt Len Std,0,0,0,0.6433,13857,False
+Thursday-01-03-2018.csv,Bwd Pkt Len Max,0,0,0,0.3836,857,False
+Thursday-01-03-2018.csv,Bwd Pkt Len Min,0,0,0,0.662,273,False
+Thursday-01-03-2018.csv,Bwd Pkt Len Mean,0,0,0,0.3836,13136,False
+Thursday-01-03-2018.csv,Bwd Pkt Len Std,0,0,0,0.7185,14800,False
+Thursday-01-03-2018.csv,Flow Byts/s,1834,1085,0,0.3004,171540,False
+Thursday-01-03-2018.csv,Flow Pkts/s,0,2919,0,0.0,155521,False
+Thursday-01-03-2018.csv,Flow IAT Mean,0,0,0,0.0088,146408,False
+Thursday-01-03-2018.csv,Flow IAT Std,0,0,0,0.5184,127942,False
+Thursday-01-03-2018.csv,Flow IAT Max,0,0,0,0.0088,83986,False
+Thursday-01-03-2018.csv,Flow IAT Min,0,0,0,0.0524,24730,False
+Thursday-01-03-2018.csv,Fwd IAT Tot,0,0,0,0.4464,96006,False
+Thursday-01-03-2018.csv,Fwd IAT Mean,0,0,0,0.4464,130082,False
+Thursday-01-03-2018.csv,Fwd IAT Std,0,0,0,0.6061,97961,False
+Thursday-01-03-2018.csv,Fwd IAT Max,0,0,0,0.4464,95023,False
+Thursday-01-03-2018.csv,Fwd IAT Min,0,0,0,0.4559,42617,False
+Thursday-01-03-2018.csv,Bwd IAT Tot,0,0,0,0.642,69546,False
+Thursday-01-03-2018.csv,Bwd IAT Mean,0,0,0,0.642,100353,False
+Thursday-01-03-2018.csv,Bwd IAT Std,0,0,0,0.7067,85205,False
+Thursday-01-03-2018.csv,Bwd IAT Max,0,0,0,0.642,52382,False
+Thursday-01-03-2018.csv,Bwd IAT Min,0,0,0,0.6724,50729,False
+Thursday-01-03-2018.csv,Fwd PSH Flags,0,0,0,0.9353,2,False
+Thursday-01-03-2018.csv,Bwd PSH Flags,0,0,0,1.0,1,True
+Thursday-01-03-2018.csv,Fwd URG Flags,0,0,0,0.9972,2,False
+Thursday-01-03-2018.csv,Bwd URG Flags,0,0,0,1.0,1,True
+Thursday-01-03-2018.csv,Fwd Header Len,0,0,0,0.0216,608,False
+Thursday-01-03-2018.csv,Bwd Header Len,0,0,0,0.1522,876,False
+Thursday-01-03-2018.csv,Fwd Pkts/s,0,0,0,0.0088,155224,False
+Thursday-01-03-2018.csv,Bwd Pkts/s,0,0,0,0.1509,137952,False
+Thursday-01-03-2018.csv,Pkt Len Min,0,0,0,0.6633,85,False
+Thursday-01-03-2018.csv,Pkt Len Max,0,0,0,0.3059,1026,False
+Thursday-01-03-2018.csv,Pkt Len Mean,0,0,0,0.3059,19124,False
+Thursday-01-03-2018.csv,Pkt Len Std,0,0,0,0.3176,21705,False
+Thursday-01-03-2018.csv,Pkt Len Var,0,0,0,0.3176,21705,False
+Thursday-01-03-2018.csv,FIN Flag Cnt,0,0,0,0.9941,2,False
+Thursday-01-03-2018.csv,SYN Flag Cnt,0,0,0,0.9353,2,False
+Thursday-01-03-2018.csv,RST Flag Cnt,0,0,0,0.801,2,False
+Thursday-01-03-2018.csv,PSH Flag Cnt,0,0,0,0.5692,2,False
+Thursday-01-03-2018.csv,ACK Flag Cnt,0,0,0,0.7934,2,False
+Thursday-01-03-2018.csv,URG Flag Cnt,0,0,0,0.9499,2,False
+Thursday-01-03-2018.csv,CWE Flag Count,0,0,0,0.9972,2,False
+Thursday-01-03-2018.csv,ECE Flag Cnt,0,0,0,0.801,2,False
+Thursday-01-03-2018.csv,Down/Up Ratio,0,0,0,0.4007,28,False
+Thursday-01-03-2018.csv,Pkt Size Avg,0,0,0,0.3059,18849,False
+Thursday-01-03-2018.csv,Fwd Seg Size Avg,0,0,0,0.3065,10070,False
+Thursday-01-03-2018.csv,Bwd Seg Size Avg,0,0,0,0.3836,13136,False
+Thursday-01-03-2018.csv,Fwd Byts/b Avg,0,0,0,1.0,1,True
+Thursday-01-03-2018.csv,Fwd Pkts/b Avg,0,0,0,1.0,1,True
+Thursday-01-03-2018.csv,Fwd Blk Rate Avg,0,0,0,1.0,1,True
+Thursday-01-03-2018.csv,Bwd Byts/b Avg,0,0,0,1.0,1,True
+Thursday-01-03-2018.csv,Bwd Pkts/b Avg,0,0,0,1.0,1,True
+Thursday-01-03-2018.csv,Bwd Blk Rate Avg,0,0,0,1.0,1,True
+Thursday-01-03-2018.csv,Subflow Fwd Pkts,0,0,0,0.0,328,False
+Thursday-01-03-2018.csv,Subflow Fwd Byts,0,0,0,0.3065,3953,False
+Thursday-01-03-2018.csv,Subflow Bwd Pkts,0,0,0,0.1508,408,False
+Thursday-01-03-2018.csv,Subflow Bwd Byts,0,0,0,0.3836,8806,False
+Thursday-01-03-2018.csv,Init Fwd Win Byts,0,0,118201,0.0059,2409,False
+Thursday-01-03-2018.csv,Init Bwd Win Byts,0,0,159458,0.1797,2108,False
+Thursday-01-03-2018.csv,Fwd Act Data Pkts,0,0,0,0.6006,131,False
+Thursday-01-03-2018.csv,Fwd Seg Size Min,0,0,0,0.0216,10,False
+Thursday-01-03-2018.csv,Active Mean,0,0,0,0.8635,42185,False
+Thursday-01-03-2018.csv,Active Std,0,0,0,0.9088,29300,False
+Thursday-01-03-2018.csv,Active Max,0,0,0,0.8635,41165,False
+Thursday-01-03-2018.csv,Active Min,0,0,0,0.8635,27466,False
+Thursday-01-03-2018.csv,Idle Mean,0,0,0,0.8363,16389,False
+Thursday-01-03-2018.csv,Idle Std,0,0,0,0.8875,30560,False
+Thursday-01-03-2018.csv,Idle Max,0,0,0,0.8363,7999,False
+Thursday-01-03-2018.csv,Idle Min,0,0,0,0.8363,19571,False
+Thursday-15-02-2018.csv,Dst Port,0,0,0,0.0177,21732,False
+Thursday-15-02-2018.csv,Protocol,0,0,0,0.0177,3,False
+Thursday-15-02-2018.csv,Flow Duration,0,0,0,0.0077,483970,False
+Thursday-15-02-2018.csv,Tot Fwd Pkts,0,0,0,0.0,694,False
+Thursday-15-02-2018.csv,Tot Bwd Pkts,0,0,0,0.2404,1189,False
+Thursday-15-02-2018.csv,TotLen Fwd Pkts,0,0,0,0.2667,7717,False
+Thursday-15-02-2018.csv,TotLen Bwd Pkts,0,0,0,0.3511,22673,False
+Thursday-15-02-2018.csv,Fwd Pkt Len Max,0,0,0,0.2667,1450,False
+Thursday-15-02-2018.csv,Fwd Pkt Len Min,0,0,0,0.6644,142,False
+Thursday-15-02-2018.csv,Fwd Pkt Len Mean,0,0,0,0.2667,25680,False
+Thursday-15-02-2018.csv,Fwd Pkt Len Std,0,0,0,0.5996,46964,False
+Thursday-15-02-2018.csv,Bwd Pkt Len Max,0,0,0,0.3511,1172,False
+Thursday-15-02-2018.csv,Bwd Pkt Len Min,0,0,0,0.6747,286,False
+Thursday-15-02-2018.csv,Bwd Pkt Len Mean,0,0,0,0.3511,38049,False
+Thursday-15-02-2018.csv,Bwd Pkt Len Std,0,0,0,0.6741,46792,False
+Thursday-15-02-2018.csv,Flow Byts/s,4921,3106,0,0.2617,542155,False
+Thursday-15-02-2018.csv,Flow Pkts/s,0,8027,0,0.0,501270,False
+Thursday-15-02-2018.csv,Flow IAT Mean,0,0,0,0.0077,501083,False
+Thursday-15-02-2018.csv,Flow IAT Std,0,0,0,0.5019,464613,False
+Thursday-15-02-2018.csv,Flow IAT Max,0,0,0,0.0077,392002,False
+Thursday-15-02-2018.csv,Flow IAT Min,0,0,0,0.0822,116630,False
+Thursday-15-02-2018.csv,Fwd IAT Tot,0,0,0,0.3261,434593,False
+Thursday-15-02-2018.csv,Fwd IAT Mean,0,0,0,0.3261,444703,False
+Thursday-15-02-2018.csv,Fwd IAT Std,0,0,0,0.5736,353644,False
+Thursday-15-02-2018.csv,Fwd IAT Max,0,0,0,0.3261,377347,False
+Thursday-15-02-2018.csv,Fwd IAT Min,0,0,0,0.3379,148883,False
+Thursday-15-02-2018.csv,Bwd IAT Tot,0,0,0,0.6075,329725,False
+Thursday-15-02-2018.csv,Bwd IAT Mean,0,0,0,0.6075,335604,False
+Thursday-15-02-2018.csv,Bwd IAT Std,0,0,0,0.6665,325005,False
+Thursday-15-02-2018.csv,Bwd IAT Max,0,0,0,0.6075,262596,False
+Thursday-15-02-2018.csv,Bwd IAT Min,0,0,0,0.6667,124886,False
+Thursday-15-02-2018.csv,Fwd PSH Flags,0,0,0,0.9488,2,False
+Thursday-15-02-2018.csv,Bwd PSH Flags,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Fwd URG Flags,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Bwd URG Flags,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Fwd Header Len,0,0,0,0.0177,1364,False
+Thursday-15-02-2018.csv,Bwd Header Len,0,0,0,0.2413,2329,False
+Thursday-15-02-2018.csv,Fwd Pkts/s,0,0,0,0.0077,498247,False
+Thursday-15-02-2018.csv,Bwd Pkts/s,0,0,0,0.2405,415147,False
+Thursday-15-02-2018.csv,Pkt Len Min,0,0,0,0.6694,92,False
+Thursday-15-02-2018.csv,Pkt Len Max,0,0,0,0.2664,1352,False
+Thursday-15-02-2018.csv,Pkt Len Mean,0,0,0,0.2664,56964,False
+Thursday-15-02-2018.csv,Pkt Len Std,0,0,0,0.2782,71873,False
+Thursday-15-02-2018.csv,Pkt Len Var,0,0,0,0.2782,72103,False
+Thursday-15-02-2018.csv,FIN Flag Cnt,0,0,0,0.9941,2,False
+Thursday-15-02-2018.csv,SYN Flag Cnt,0,0,0,0.9488,2,False
+Thursday-15-02-2018.csv,RST Flag Cnt,0,0,0,0.939,2,False
+Thursday-15-02-2018.csv,PSH Flag Cnt,0,0,0,0.6365,2,False
+Thursday-15-02-2018.csv,ACK Flag Cnt,0,0,0,0.7144,2,False
+Thursday-15-02-2018.csv,URG Flag Cnt,0,0,0,0.9522,2,False
+Thursday-15-02-2018.csv,CWE Flag Count,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,ECE Flag Cnt,0,0,0,0.939,2,False
+Thursday-15-02-2018.csv,Down/Up Ratio,0,0,0,0.449,48,False
+Thursday-15-02-2018.csv,Pkt Size Avg,0,0,0,0.2664,56423,False
+Thursday-15-02-2018.csv,Fwd Seg Size Avg,0,0,0,0.2667,25680,False
+Thursday-15-02-2018.csv,Bwd Seg Size Avg,0,0,0,0.3511,38048,False
+Thursday-15-02-2018.csv,Fwd Byts/b Avg,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Fwd Pkts/b Avg,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Fwd Blk Rate Avg,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Bwd Byts/b Avg,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Bwd Pkts/b Avg,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Bwd Blk Rate Avg,0,0,0,1.0,1,True
+Thursday-15-02-2018.csv,Subflow Fwd Pkts,0,0,0,0.0,694,False
+Thursday-15-02-2018.csv,Subflow Fwd Byts,0,0,0,0.2667,7717,False
+Thursday-15-02-2018.csv,Subflow Bwd Pkts,0,0,0,0.2404,1189,False
+Thursday-15-02-2018.csv,Subflow Bwd Byts,0,0,0,0.3511,22673,False
+Thursday-15-02-2018.csv,Init Fwd Win Byts,0,0,364089,0.0059,4493,False
+Thursday-15-02-2018.csv,Init Bwd Win Byts,0,0,587584,0.049,5123,False
+Thursday-15-02-2018.csv,Fwd Act Data Pkts,0,0,0,0.5534,138,False
+Thursday-15-02-2018.csv,Fwd Seg Size Min,0,0,0,0.0177,11,False
+Thursday-15-02-2018.csv,Active Mean,0,0,0,0.8663,123378,False
+Thursday-15-02-2018.csv,Active Std,0,0,0,0.9098,93199,False
+Thursday-15-02-2018.csv,Active Max,0,0,0,0.8663,118060,False
+Thursday-15-02-2018.csv,Active Min,0,0,0,0.8663,67836,False
+Thursday-15-02-2018.csv,Idle Mean,0,0,0,0.8453,153947,False
+Thursday-15-02-2018.csv,Idle Std,0,0,0,0.8965,99359,False
+Thursday-15-02-2018.csv,Idle Max,0,0,0,0.8453,125263,False
+Thursday-15-02-2018.csv,Idle Min,0,0,0,0.8453,134473,False
+Thursday-22-02-2018.csv,Dst Port,0,0,0,0.0154,51664,False
+Thursday-22-02-2018.csv,Protocol,0,0,0,0.0154,3,False
+Thursday-22-02-2018.csv,Flow Duration,0,0,9,0.0054,550104,False
+Thursday-22-02-2018.csv,Tot Fwd Pkts,0,0,0,0.0,844,False
+Thursday-22-02-2018.csv,Tot Bwd Pkts,0,0,0,0.2705,1160,False
+Thursday-22-02-2018.csv,TotLen Fwd Pkts,0,0,0,0.2923,7350,False
+Thursday-22-02-2018.csv,TotLen Bwd Pkts,0,0,0,0.3593,21399,False
+Thursday-22-02-2018.csv,Fwd Pkt Len Max,0,0,0,0.2923,1437,False
+Thursday-22-02-2018.csv,Fwd Pkt Len Min,0,0,0,0.705,181,False
+Thursday-22-02-2018.csv,Fwd Pkt Len Mean,0,0,0,0.2923,24088,False
+Thursday-22-02-2018.csv,Fwd Pkt Len Std,0,0,0,0.5846,41792,False
+Thursday-22-02-2018.csv,Bwd Pkt Len Max,0,0,0,0.3593,1169,False
+Thursday-22-02-2018.csv,Bwd Pkt Len Min,0,0,0,0.717,298,False
+Thursday-22-02-2018.csv,Bwd Pkt Len Mean,0,0,0,0.3593,35628,False
+Thursday-22-02-2018.csv,Bwd Pkt Len Std,0,0,0,0.6401,43904,False
+Thursday-22-02-2018.csv,Flow Byts/s,3569,2041,0,0.2883,542188,False
+Thursday-22-02-2018.csv,Flow Pkts/s,0,5610,9,0.0,564961,False
+Thursday-22-02-2018.csv,Flow IAT Mean,0,0,9,0.0054,564518,False
+Thursday-22-02-2018.csv,Flow IAT Std,0,0,0,0.4921,481083,False
+Thursday-22-02-2018.csv,Flow IAT Max,0,0,1,0.0054,410625,False
+Thursday-22-02-2018.csv,Flow IAT Min,0,0,9,0.064,156200,False
+Thursday-22-02-2018.csv,Fwd IAT Tot,0,0,9,0.2733,502417,False
+Thursday-22-02-2018.csv,Fwd IAT Mean,0,0,9,0.2733,511167,False
+Thursday-22-02-2018.csv,Fwd IAT Std,0,0,0,0.5604,372424,False
+Thursday-22-02-2018.csv,Fwd IAT Max,0,0,1,0.2733,434118,False
+Thursday-22-02-2018.csv,Fwd IAT Min,0,0,9,0.2812,199413,False
+Thursday-22-02-2018.csv,Bwd IAT Tot,0,0,0,0.5824,355132,False
+Thursday-22-02-2018.csv,Bwd IAT Mean,0,0,0,0.5824,361035,False
+Thursday-22-02-2018.csv,Bwd IAT Std,0,0,0,0.6399,355395,False
+Thursday-22-02-2018.csv,Bwd IAT Max,0,0,0,0.5824,262114,False
+Thursday-22-02-2018.csv,Bwd IAT Min,0,0,0,0.6301,129993,False
+Thursday-22-02-2018.csv,Fwd PSH Flags,0,0,0,0.9614,2,False
+Thursday-22-02-2018.csv,Bwd PSH Flags,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Fwd URG Flags,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Bwd URG Flags,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Fwd Header Len,0,0,0,0.0154,1459,False
+Thursday-22-02-2018.csv,Bwd Header Len,0,0,0,0.271,2236,False
+Thursday-22-02-2018.csv,Fwd Pkts/s,0,0,0,0.0054,561671,False
+Thursday-22-02-2018.csv,Bwd Pkts/s,0,0,0,0.2706,426954,False
+Thursday-22-02-2018.csv,Pkt Len Min,0,0,0,0.707,95,False
+Thursday-22-02-2018.csv,Pkt Len Max,0,0,0,0.2917,1319,False
+Thursday-22-02-2018.csv,Pkt Len Mean,0,0,0,0.2917,53160,False
+Thursday-22-02-2018.csv,Pkt Len Std,0,0,0,0.304,65053,False
+Thursday-22-02-2018.csv,Pkt Len Var,0,0,0,0.304,65266,False
+Thursday-22-02-2018.csv,FIN Flag Cnt,0,0,0,0.9949,2,False
+Thursday-22-02-2018.csv,SYN Flag Cnt,0,0,0,0.9614,2,False
+Thursday-22-02-2018.csv,RST Flag Cnt,0,0,0,0.882,2,False
+Thursday-22-02-2018.csv,PSH Flag Cnt,0,0,0,0.625,2,False
+Thursday-22-02-2018.csv,ACK Flag Cnt,0,0,0,0.6853,2,False
+Thursday-22-02-2018.csv,URG Flag Cnt,0,0,0,0.959,2,False
+Thursday-22-02-2018.csv,CWE Flag Count,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,ECE Flag Cnt,0,0,0,0.882,2,False
+Thursday-22-02-2018.csv,Down/Up Ratio,0,0,0,0.5381,52,False
+Thursday-22-02-2018.csv,Pkt Size Avg,0,0,0,0.2917,52615,False
+Thursday-22-02-2018.csv,Fwd Seg Size Avg,0,0,0,0.2923,24088,False
+Thursday-22-02-2018.csv,Bwd Seg Size Avg,0,0,0,0.3593,35628,False
+Thursday-22-02-2018.csv,Fwd Byts/b Avg,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Fwd Pkts/b Avg,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Fwd Blk Rate Avg,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Bwd Byts/b Avg,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Bwd Pkts/b Avg,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Bwd Blk Rate Avg,0,0,0,1.0,1,True
+Thursday-22-02-2018.csv,Subflow Fwd Pkts,0,0,0,0.0,844,False
+Thursday-22-02-2018.csv,Subflow Fwd Byts,0,0,0,0.2923,7350,False
+Thursday-22-02-2018.csv,Subflow Bwd Pkts,0,0,0,0.2705,1160,False
+Thursday-22-02-2018.csv,Subflow Bwd Byts,0,0,0,0.3593,21399,False
+Thursday-22-02-2018.csv,Init Fwd Win Byts,0,0,322153,0.0051,4694,False
+Thursday-22-02-2018.csv,Init Bwd Win Byts,0,0,577969,0.0366,5299,False
+Thursday-22-02-2018.csv,Fwd Act Data Pkts,0,0,0,0.5321,117,False
+Thursday-22-02-2018.csv,Fwd Seg Size Min,0,0,0,0.0154,9,False
+Thursday-22-02-2018.csv,Active Mean,0,0,0,0.8998,101729,False
+Thursday-22-02-2018.csv,Active Std,0,0,0,0.9225,80587,False
+Thursday-22-02-2018.csv,Active Max,0,0,0,0.8998,97282,False
+Thursday-22-02-2018.csv,Active Min,0,0,0,0.8998,50790,False
+Thursday-22-02-2018.csv,Idle Mean,0,0,0,0.8151,182975,False
+Thursday-22-02-2018.csv,Idle Std,0,0,0,0.9098,84687,False
+Thursday-22-02-2018.csv,Idle Max,0,0,0,0.8151,148496,False
+Thursday-22-02-2018.csv,Idle Min,0,0,0,0.8151,164966,False
+Wednesday-14-02-2018.csv,Dst Port,0,0,0,0.0113,18567,False
+Wednesday-14-02-2018.csv,Protocol,0,0,0,0.0113,3,False
+Wednesday-14-02-2018.csv,Flow Duration,0,0,5,0.0036,389493,False
+Wednesday-14-02-2018.csv,Tot Fwd Pkts,0,0,0,0.0,751,False
+Wednesday-14-02-2018.csv,Tot Bwd Pkts,0,0,0,0.1411,988,False
+Wednesday-14-02-2018.csv,TotLen Fwd Pkts,0,0,0,0.4347,5842,False
+Wednesday-14-02-2018.csv,TotLen Bwd Pkts,0,0,0,0.4827,15656,False
+Wednesday-14-02-2018.csv,Fwd Pkt Len Max,0,0,0,0.4347,1390,False
+Wednesday-14-02-2018.csv,Fwd Pkt Len Min,0,0,0,0.8005,112,False
+Wednesday-14-02-2018.csv,Fwd Pkt Len Mean,0,0,0,0.4347,17879,False
+Wednesday-14-02-2018.csv,Fwd Pkt Len Std,0,0,0,0.6325,27501,False
+Wednesday-14-02-2018.csv,Bwd Pkt Len Max,0,0,0,0.4827,958,False
+Wednesday-14-02-2018.csv,Bwd Pkt Len Min,0,0,0,0.8082,270,False
+Wednesday-14-02-2018.csv,Bwd Pkt Len Mean,0,0,0,0.4827,24524,False
+Wednesday-14-02-2018.csv,Bwd Pkt Len Std,0,0,0,0.6731,28866,False
+Wednesday-14-02-2018.csv,Flow Byts/s,2277,1547,0,0.4323,454332,False
+Wednesday-14-02-2018.csv,Flow Pkts/s,0,3824,5,0.0,417167,False
+Wednesday-14-02-2018.csv,Flow IAT Mean,0,0,5,0.0036,418622,False
+Wednesday-14-02-2018.csv,Flow IAT Std,0,0,0,0.5693,416669,False
+Wednesday-14-02-2018.csv,Flow IAT Max,0,0,2,0.0036,295378,False
+Wednesday-14-02-2018.csv,Flow IAT Min,0,0,5,0.0456,66507,False
+Wednesday-14-02-2018.csv,Fwd IAT Tot,0,0,5,0.4654,352376,False
+Wednesday-14-02-2018.csv,Fwd IAT Mean,0,0,5,0.4654,373758,False
+Wednesday-14-02-2018.csv,Fwd IAT Std,0,0,0,0.6162,341531,False
+Wednesday-14-02-2018.csv,Fwd IAT Max,0,0,2,0.4654,303763,False
+Wednesday-14-02-2018.csv,Fwd IAT Min,0,0,5,0.4724,89620,False
+Wednesday-14-02-2018.csv,Bwd IAT Tot,0,0,0,0.6346,293735,False
+Wednesday-14-02-2018.csv,Bwd IAT Mean,0,0,0,0.6346,309260,False
+Wednesday-14-02-2018.csv,Bwd IAT Std,0,0,0,0.6715,330389,False
+Wednesday-14-02-2018.csv,Bwd IAT Max,0,0,0,0.6346,222886,False
+Wednesday-14-02-2018.csv,Bwd IAT Min,0,0,0,0.6675,108796,False
+Wednesday-14-02-2018.csv,Fwd PSH Flags,0,0,0,0.9734,2,False
+Wednesday-14-02-2018.csv,Bwd PSH Flags,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Fwd URG Flags,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Bwd URG Flags,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Fwd Header Len,0,0,0,0.0113,1237,False
+Wednesday-14-02-2018.csv,Bwd Header Len,0,0,0,0.1416,1843,False
+Wednesday-14-02-2018.csv,Fwd Pkts/s,0,0,0,0.0037,410765,False
+Wednesday-14-02-2018.csv,Bwd Pkts/s,0,0,0,0.1412,359869,False
+Wednesday-14-02-2018.csv,Pkt Len Min,0,0,0,0.8017,80,False
+Wednesday-14-02-2018.csv,Pkt Len Max,0,0,0,0.4345,1139,False
+Wednesday-14-02-2018.csv,Pkt Len Mean,0,0,0,0.4345,36030,False
+Wednesday-14-02-2018.csv,Pkt Len Std,0,0,0,0.4427,42554,False
+Wednesday-14-02-2018.csv,Pkt Len Var,0,0,0,0.4427,42707,False
+Wednesday-14-02-2018.csv,FIN Flag Cnt,0,0,0,0.9964,2,False
+Wednesday-14-02-2018.csv,SYN Flag Cnt,0,0,0,0.9734,2,False
+Wednesday-14-02-2018.csv,RST Flag Cnt,0,0,0,0.9604,2,False
+Wednesday-14-02-2018.csv,PSH Flag Cnt,0,0,0,0.4746,2,False
+Wednesday-14-02-2018.csv,ACK Flag Cnt,0,0,0,0.7365,2,False
+Wednesday-14-02-2018.csv,URG Flag Cnt,0,0,0,0.8789,2,False
+Wednesday-14-02-2018.csv,CWE Flag Count,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,ECE Flag Cnt,0,0,0,0.9604,2,False
+Wednesday-14-02-2018.csv,Down/Up Ratio,0,0,0,0.3494,33,False
+Wednesday-14-02-2018.csv,Pkt Size Avg,0,0,0,0.4345,35682,False
+Wednesday-14-02-2018.csv,Fwd Seg Size Avg,0,0,0,0.4347,17879,False
+Wednesday-14-02-2018.csv,Bwd Seg Size Avg,0,0,0,0.4827,24523,False
+Wednesday-14-02-2018.csv,Fwd Byts/b Avg,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Fwd Pkts/b Avg,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Fwd Blk Rate Avg,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Bwd Byts/b Avg,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Bwd Pkts/b Avg,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Bwd Blk Rate Avg,0,0,0,1.0,1,True
+Wednesday-14-02-2018.csv,Subflow Fwd Pkts,0,0,0,0.0,751,False
+Wednesday-14-02-2018.csv,Subflow Fwd Byts,0,0,0,0.4347,5842,False
+Wednesday-14-02-2018.csv,Subflow Bwd Pkts,0,0,0,0.1411,988,False
+Wednesday-14-02-2018.csv,Subflow Bwd Byts,0,0,0,0.4827,15656,False
+Wednesday-14-02-2018.csv,Init Fwd Win Byts,0,0,219266,0.0036,3308,False
+Wednesday-14-02-2018.csv,Init Bwd Win Byts,0,0,347370,0.2133,3547,False
+Wednesday-14-02-2018.csv,Fwd Act Data Pkts,0,0,0,0.6016,112,False
+Wednesday-14-02-2018.csv,Fwd Seg Size Min,0,0,0,0.0113,10,False
+Wednesday-14-02-2018.csv,Active Mean,0,0,0,0.9285,73591,False
+Wednesday-14-02-2018.csv,Active Std,0,0,0,0.9468,55382,False
+Wednesday-14-02-2018.csv,Active Max,0,0,0,0.9285,71437,False
+Wednesday-14-02-2018.csv,Active Min,0,0,0,0.9285,38864,False
+Wednesday-14-02-2018.csv,Idle Mean,0,0,0,0.9191,80419,False
+Wednesday-14-02-2018.csv,Idle Std,0,0,0,0.938,57847,False
+Wednesday-14-02-2018.csv,Idle Max,0,0,0,0.9191,59134,False
+Wednesday-14-02-2018.csv,Idle Min,0,0,0,0.9191,69046,False
+Wednesday-21-02-2018.csv,Dst Port,0,0,0,0.0001,16469,False
+Wednesday-21-02-2018.csv,Protocol,0,0,0,0.0001,3,False
+Wednesday-21-02-2018.csv,Flow Duration,0,0,0,0.0,48660,False
+Wednesday-21-02-2018.csv,Tot Fwd Pkts,0,0,0,0.0,1730,False
+Wednesday-21-02-2018.csv,Tot Bwd Pkts,0,0,0,0.5016,21,False
+Wednesday-21-02-2018.csv,TotLen Fwd Pkts,0,0,0,0.4983,1818,False
+Wednesday-21-02-2018.csv,TotLen Bwd Pkts,0,0,0,0.5018,80,False
+Wednesday-21-02-2018.csv,Fwd Pkt Len Max,0,0,0,0.4983,81,False
+Wednesday-21-02-2018.csv,Fwd Pkt Len Min,0,0,0,0.9965,7,False
+Wednesday-21-02-2018.csv,Fwd Pkt Len Mean,0,0,0,0.4983,105,False
+Wednesday-21-02-2018.csv,Fwd Pkt Len Std,0,0,0,0.5018,102,False
+Wednesday-21-02-2018.csv,Bwd Pkt Len Max,0,0,0,0.5018,61,False
+Wednesday-21-02-2018.csv,Bwd Pkt Len Min,0,0,0,1.0,7,False
+Wednesday-21-02-2018.csv,Bwd Pkt Len Mean,0,0,0,0.5018,86,False
+Wednesday-21-02-2018.csv,Bwd Pkt Len Std,0,0,0,0.5018,81,False
+Wednesday-21-02-2018.csv,Flow Byts/s,0,0,0,0.4983,276713,False
+Wednesday-21-02-2018.csv,Flow Pkts/s,0,0,0,0.0,73235,False
+Wednesday-21-02-2018.csv,Flow IAT Mean,0,0,0,0.0,71571,False
+Wednesday-21-02-2018.csv,Flow IAT Std,0,0,0,0.4982,491456,False
+Wednesday-21-02-2018.csv,Flow IAT Max,0,0,0,0.0,44298,False
+Wednesday-21-02-2018.csv,Flow IAT Min,0,0,0,0.0013,36864,False
+Wednesday-21-02-2018.csv,Fwd IAT Tot,0,0,0,0.0001,43028,False
+Wednesday-21-02-2018.csv,Fwd IAT Mean,0,0,0,0.0001,65207,False
+Wednesday-21-02-2018.csv,Fwd IAT Std,0,0,0,0.4983,323988,False
+Wednesday-21-02-2018.csv,Fwd IAT Max,0,0,0,0.0001,44140,False
+Wednesday-21-02-2018.csv,Fwd IAT Min,0,0,0,0.0015,37041,False
+Wednesday-21-02-2018.csv,Bwd IAT Tot,0,0,0,0.5018,40337,False
+Wednesday-21-02-2018.csv,Bwd IAT Mean,0,0,0,0.5018,52861,False
+Wednesday-21-02-2018.csv,Bwd IAT Std,0,0,0,0.8437,157595,False
+Wednesday-21-02-2018.csv,Bwd IAT Max,0,0,0,0.5018,36109,False
+Wednesday-21-02-2018.csv,Bwd IAT Min,0,0,0,0.5018,31049,False
+Wednesday-21-02-2018.csv,Fwd PSH Flags,0,0,0,1.0,2,False
+Wednesday-21-02-2018.csv,Bwd PSH Flags,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Fwd URG Flags,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Bwd URG Flags,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Fwd Header Len,0,0,0,0.0001,1758,False
+Wednesday-21-02-2018.csv,Bwd Header Len,0,0,0,0.5016,36,False
+Wednesday-21-02-2018.csv,Fwd Pkts/s,0,0,0,0.0,85247,False
+Wednesday-21-02-2018.csv,Bwd Pkts/s,0,0,0,0.5016,48941,False
+Wednesday-21-02-2018.csv,Pkt Len Min,0,0,0,0.9965,6,False
+Wednesday-21-02-2018.csv,Pkt Len Max,0,0,0,0.4983,26,False
+Wednesday-21-02-2018.csv,Pkt Len Mean,0,0,0,0.4983,117,False
+Wednesday-21-02-2018.csv,Pkt Len Std,0,0,0,0.5018,112,False
+Wednesday-21-02-2018.csv,Pkt Len Var,0,0,0,0.5018,112,False
+Wednesday-21-02-2018.csv,FIN Flag Cnt,0,0,0,1.0,2,False
+Wednesday-21-02-2018.csv,SYN Flag Cnt,0,0,0,1.0,2,False
+Wednesday-21-02-2018.csv,RST Flag Cnt,0,0,0,0.5019,2,False
+Wednesday-21-02-2018.csv,PSH Flag Cnt,0,0,0,0.5017,2,False
+Wednesday-21-02-2018.csv,ACK Flag Cnt,0,0,0,0.5019,2,False
+Wednesday-21-02-2018.csv,URG Flag Cnt,0,0,0,1.0,2,False
+Wednesday-21-02-2018.csv,CWE Flag Count,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,ECE Flag Cnt,0,0,0,0.5019,2,False
+Wednesday-21-02-2018.csv,Down/Up Ratio,0,0,0,0.8437,6,False
+Wednesday-21-02-2018.csv,Pkt Size Avg,0,0,0,0.4983,1772,False
+Wednesday-21-02-2018.csv,Fwd Seg Size Avg,0,0,0,0.4983,105,False
+Wednesday-21-02-2018.csv,Bwd Seg Size Avg,0,0,0,0.5018,86,False
+Wednesday-21-02-2018.csv,Fwd Byts/b Avg,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Fwd Pkts/b Avg,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Fwd Blk Rate Avg,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Bwd Byts/b Avg,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Bwd Pkts/b Avg,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Bwd Blk Rate Avg,0,0,0,1.0,1,True
+Wednesday-21-02-2018.csv,Subflow Fwd Pkts,0,0,0,0.0,1730,False
+Wednesday-21-02-2018.csv,Subflow Fwd Byts,0,0,0,0.4983,1818,False
+Wednesday-21-02-2018.csv,Subflow Bwd Pkts,0,0,0,0.5016,21,False
+Wednesday-21-02-2018.csv,Subflow Bwd Byts,0,0,0,0.5018,80,False
+Wednesday-21-02-2018.csv,Init Fwd Win Byts,0,0,3712,0.0,52,False
+Wednesday-21-02-2018.csv,Init Bwd Win Byts,0,0,525993,0.0002,24,False
+Wednesday-21-02-2018.csv,Fwd Act Data Pkts,0,0,0,0.4983,1730,False
+Wednesday-21-02-2018.csv,Fwd Seg Size Min,0,0,0,0.0001,8,False
+Wednesday-21-02-2018.csv,Active Mean,0,0,0,0.9983,1646,False
+Wednesday-21-02-2018.csv,Active Std,0,0,0,0.9989,1169,False
+Wednesday-21-02-2018.csv,Active Max,0,0,0,0.9983,1479,False
+Wednesday-21-02-2018.csv,Active Min,0,0,0,0.9983,1624,False
+Wednesday-21-02-2018.csv,Idle Mean,0,0,0,0.9981,362,False
+Wednesday-21-02-2018.csv,Idle Std,0,0,0,0.9981,1443,False
+Wednesday-21-02-2018.csv,Idle Max,0,0,0,0.9981,129,False
+Wednesday-21-02-2018.csv,Idle Min,0,0,0,0.9981,1624,False

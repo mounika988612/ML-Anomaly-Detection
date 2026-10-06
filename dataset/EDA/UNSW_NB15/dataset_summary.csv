@@ -1,0 +1,3 @@
+file,rows_raw,benign_rows,attack_rows,attack_pct,label_category_mismatch,attack_cat_padded,missing_cells,rows_with_missing,duplicate_rows,duplicate_feature_rows,conflicting_duplicates,invalid_core_rows,negative_duration,negative_values,n_protocols,n_services,n_states,has_timestamps,attack_types,test_rows_seen_in_train
+UNSW_NB15_training-set.csv,175341,56000,119341,68.062,0,0,0,0,67601,74301,30528,0,0,0,133,13,9,False,Analysis; Backdoor; DoS; Exploits; Fuzzers; Generic; Reconnaissance; Shellcode; Worms,
+UNSW_NB15_testing-set.csv,82332,37000,45332,55.06,0,0,0,0,26387,28386,8809,0,0,0,131,13,7,False,Analysis; Backdoor; DoS; Exploits; Fuzzers; Generic; Reconnaissance; Shellcode; Worms,8541.0

@@ -217,6 +217,24 @@ In `results_*\` you'll find:
 - `explanations*.md`, `explanation_quality*.csv` and `analyst_report*.md` (described under
   [Explanations](#explanations-and-analyst-reports))
 
+### Reproducing the final results
+
+`anomaly_pipeline/Makefile` has one target per level of reproduction. Run it from Git Bash. `make` isn't part of Git Bash;
+install it with `conda install -n mlenv -c conda-forge make`, or call the scripts directly (`bash scripts/reproduce_final.sh`).
+
+| command | what it does | time |
+|---|---|---|
+| `make reproduce-final` | regenerates every final table and report (EDA, E7, E9, E10, CSE-CIC-IDS2018, X2-X4, E11-E13) from the saved models and score files, then checks that every number matches | ~5 h |
+| `make reproduce-<step>` | one step: `prepare eda e7 e9 e10 crossdata x2 e11 e12 e13 x3 x4` | minutes to 1.5 h |
+| `make retrain-final CONFIRM=1` | retrains every final model from the data, then runs `reproduce-final`. Overwrites the reported results. | ~12-15 h |
+| `make dataset CONFIRM=1` | rebuilds CIC-IDS2017 from the pcaps (Suricata) and runs Zeek, in Docker | ~6 h |
+| `make test` | unit tests | ~2 min |
+
+Before a step overwrites its outputs, they are copied to `reproduce_runs/<timestamp>/before/`. At the end every regenerated
+CSV, NPZ and Markdown file is compared with that copy, and the result goes to `reproduce_runs/<timestamp>/verification.csv`:
+SAME, DIFFERENT, MISSING or NEW, with the largest numeric difference. Figures are regenerated but not compared. The target
+exits with an error if anything differs. Set `PY` to the `mlenv` interpreter when `python` isn't the right one.
+
 ### Building CIC-IDS2017 from the pcaps (experiment E7)
 
 This is the only step that needs Docker Desktop, since Suricata runs in a pinned container. In Git Bash, plain
@@ -277,10 +295,12 @@ anomaly_pipeline\
 │   ├── e9_devtest.py              E9: choose on Tuesday, test once on Wednesday-Friday
 │   ├── label_audit.py, knn_reference.py, window_alerts.py, contrastive_diagnostics.py   E4–E6 analyses
 │   ├── hparam_search.py, operating_point_analysis.py, alert_aggregation.py, compare_proposed_vs_baselines.py
+│   ├── leakage_audit.py, e11_tuning.py, e12_lofo.py, e13_zeek.py, representation_analysis.py, error_analysis.py   X2-X4, E11-E13
+│   ├── reproduce_final.sh, retrain_final.sh, verify_reproduction.py   make reproduce-final / retrain-final
 │   └── eda.py, loadtest.py
 │
 ├── tests\                     pytest suite (87 tests)
-├── docs\                      API.md, DEPLOYMENT.md, LABEL_AUDIT.md, SURICATA2017_PROVENANCE.md, cic2017_attack_schedule.csv
+├── docs\                      API.md, DEPLOYMENT.md, LABEL_AUDIT.md, LEAKAGE_AUDIT.md, REPRESENTATION_AND_ERRORS.md, SURICATA2017_PROVENANCE.md, cic2017_attack_schedule.csv
 ├── results_comparison\        PREREGISTRATION.md and the final tables and figures
 ├── logs\, models\, work_*\, results_*\   experiment scripts and logs, model bundle, caches, outputs   [not in git]
 └── Dockerfile, docker-compose.yml, .github\workflows\ci.yml, docker_ids.sh
@@ -699,6 +719,33 @@ served, because the service doesn't compute context features for individual inco
 CIC-IDS2017 models can be served yet, `ssl_mm_ensemble` included, because the service expects CICFlowMeter-style flow
 columns while those models take Suricata event features. Adding Suricata (eve.json) input to the service is the same
 job as writing the Terma adapter.
+
+---
+
+## Post-hoc audit and robustness checks (X2-X4, E11-E13)
+
+These were added on 2026-10-05, after all earlier results were known. Each is logged in `PREREGISTRATION.md`, and none of them changes
+a reported E1-E10 number.
+
+- **Leakage audit (X2, `docs/LEAKAGE_AUDIT.md`, `scripts/leakage_audit.py`).** No leakage that could inflate the unsupervised results.
+  Two findings matter for reading them. On UNSW-NB15, 15-48% of several attack types in the test set are identical to rows the
+  supervised RF was trained on. On CIC-IDS2017, many attack-labelled flows are identical to benign Monday flows (XSS 95%, Web Brute
+  Force 89%, Portscan 50% near-identical), which caps the recall any flow-level detector can reach.
+- **Fair baseline tuning (E11, `results_comparison/E11/E11_report.md`, `scripts/e11_tuning.py`).** Every method got the same label-free
+  search. Afterwards H7 and H6 are unchanged. H1 stays unsupported, and now the tuned Isolation Forest ranks significantly better than
+  the tuned SSL model (ROC-AUC 0.974 vs 0.953). The SSL model keeps the better operating point: recall 0.43 vs 0.32 at half the
+  false-positive rate.
+- **Representation and error analysis (X3 / X4, `docs/REPRESENTATION_AND_ERRORS.md`).** The SSL latent space is organised by service
+  role, which is where its advantage over a global search comes from. Misses are label artefacts, well-ranked attacks that stay below
+  the 1% benign tail (SSH-Patator, DoS Hulk), or a threshold sitting at the edge of an attack cluster. Most of the SSL model's false
+  alarms are flows Suricata flushed when each capture ended.
+- **Unseen attack families (E12, `results_comparison/E12/E12_report.md`, `scripts/e12_lofo.py`).** An RF trained on five of
+  the six attack families ranks the held-out family well (AUC 0.93-0.995, Web 0.58), but its recall at a calibrated threshold collapses
+  for DoS, Web, Botnet and Scan (H8a supported). The SSL model does not beat it on recall in any family (H8b not supported), so the
+  label-free model's advantage is that it needs no attack labels, not better zero-day recall.
+- **Zeek on CIC-IDS2017 (E13, `results_comparison/E13/E13_report.md`, `scripts/e13_zeek.py`).** Zeek only detects the FTP and SSH
+  brute force (recall 0.50 / 0.58) and Heartbleed; overall recall 0.007 at an FPR of 2.9%, almost all from certificate-validation
+  notices on benign traffic. It is the only detector that catches SSH-Patator, so Zeek OR SSL lifts SSH-Patator recall from 0.001 to 0.58.
 
 ---
 

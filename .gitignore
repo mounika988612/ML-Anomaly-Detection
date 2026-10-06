@@ -1,0 +1,6 @@
+# Raw datasets, sensor output and rerun scores: large, rebuilt with `make dataset` / `make retrain-final`, never committed
+/dataset/CICIDS2017/
+/dataset/CICIDS2018/
+/dataset/UNSW_NB15/
+/external/
+/rerun/

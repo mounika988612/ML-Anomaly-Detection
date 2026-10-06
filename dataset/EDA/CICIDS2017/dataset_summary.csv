@@ -1,0 +1,6 @@
+file,rows_raw,rows_clean,benign_rows,attack_rows,attack_pct,missing_cells,duplicate_flow_ids,duplicate_feature_rows,conflicting_duplicates,invalid_core_rows,negative_duration,invalid_ports,invalid_protocols,invalid_timestamps,first_timestamp_utc,last_timestamp_utc,pad_zone_rows,suricata_alerted_rows,suricata_alerted_attack_rows,attack_types
+Monday,343005,343005,343005,0,0.0,0,93810,163186,0,0,0,0,0,0,2017-07-03 11:55:58.598308+00:00,2017-07-03 20:01:34.352593+00:00,0,7199,0,
+Tuesday,294471,294471,287910,6561,2.228,0,83091,132827,0,0,0,0,0,0,2017-07-04 11:53:34.788169+00:00,2017-07-04 20:00:30.041663+00:00,81,2692,1978,FTP-Patator; SSH-Patator
+Wednesday,468827,468827,292083,176744,37.699,0,242317,213076,5560,0,0,0,0,0,2017-07-05 11:42:42.084372+00:00,2017-07-05 20:10:14.557249+00:00,0,866,2,DoS GoldenEye; DoS Hulk; DoS Slowhttptest; DoS Slowloris; Heartbleed
+Thursday,334342,334342,265761,68581,20.512,0,73903,184010,55740,0,0,0,0,0,2017-07-06 11:59:00.490140+00:00,2017-07-06 20:04:44.361797+00:00,27,904,133,Infiltration; Infiltration - Portscan; Web Attack - Brute Force; Web Attack - SQL Injection; Web Attack - XSS
+Friday,523175,523175,264355,258820,49.471,0,125524,371268,781,0,0,0,0,0,2017-07-07 11:59:50.315195+00:00,2017-07-07 20:02:40.977798+00:00,7,900,193,Botnet; DDoS; Portscan

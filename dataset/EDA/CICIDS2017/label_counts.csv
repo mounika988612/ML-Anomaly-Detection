@@ -1,0 +1,21 @@
+file,label,rows
+Monday,Benign,343005
+Tuesday,Benign,287910
+Tuesday,FTP-Patator,4010
+Tuesday,SSH-Patator,2551
+Wednesday,Benign,292083
+Wednesday,DoS Hulk,161096
+Wednesday,DoS GoldenEye,7530
+Wednesday,DoS Slowhttptest,4222
+Wednesday,DoS Slowloris,3895
+Wednesday,Heartbleed,1
+Thursday,Benign,265761
+Thursday,Infiltration - Portscan,66514
+Thursday,Web Attack - Brute Force,1362
+Thursday,Web Attack - XSS,679
+Thursday,Infiltration,14
+Thursday,Web Attack - SQL Injection,12
+Friday,Benign,264355
+Friday,Portscan,161264
+Friday,DDoS,96813
+Friday,Botnet,743

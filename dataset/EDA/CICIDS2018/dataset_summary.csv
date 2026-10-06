@@ -1,0 +1,7 @@
+file,rows_raw,rows_clean,repeated_headers,benign_rows,attack_rows,missing_cells,rows_with_missing,duplicate_rows,invalid_core_rows,negative_duration,invalid_ports,invalid_protocols,invalid_timestamps,first_timestamp,last_timestamp,attack_types
+Friday-02-03-2018.csv,1048575,1048575,0,762384,286191,2558,2558,5459,0,0,0,0,0,2018-03-02 01:00:00,2018-03-02 12:59:59,Bot
+Thursday-01-03-2018.csv,331125,331100,25,238037,93063,1834,1834,73,0,0,0,0,0,2018-03-01 01:00:00,2018-03-01 12:59:59,Infilteration
+Thursday-15-02-2018.csv,1048575,1048575,0,996077,52498,4921,4921,2421,0,0,0,0,0,2018-02-15 01:00:00,2018-02-15 12:59:59,DoS attacks-GoldenEye; DoS attacks-Slowloris
+Thursday-22-02-2018.csv,1048575,1048575,0,1048213,362,3569,3569,3278,0,9,0,0,9,2018-02-22 01:00:00,2018-02-22 12:59:59,Brute Force -Web; Brute Force -XSS; SQL Injection
+Wednesday-14-02-2018.csv,1048575,1048575,0,667626,380949,2277,2277,225628,0,5,0,0,5,2018-02-14 01:00:00,2018-02-14 12:59:59,FTP-BruteForce; SSH-Bruteforce
+Wednesday-21-02-2018.csv,1048575,1048575,0,360833,687742,0,0,17557,0,0,0,0,0,2018-02-21 01:55:46,2018-02-21 10:43:21,DDOS attack-HOIC; DDOS attack-LOIC-UDP
